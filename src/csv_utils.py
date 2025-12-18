@@ -11,13 +11,14 @@ def is_valid_row(row: List[str], ignore_keywords: List[str]) -> bool:
     Returns:
         bool: 有効な行の場合True
     """
-    # 行が3列未満の場合は無効
-    if len(row) < 3:
+    # 行が20列未満の場合は無効（最低でもT列=19まで必要）
+    if len(row) < 20:
         return False
     
-    # キーワード列に無視するキーワードが含まれている場合は無効
+    # 0列目（A列）に無視キーワードが含まれているかチェック
     if row[0] in ignore_keywords:
         return False
     
-    # メニュー名と説明文が両方存在する場合のみ有効
-    return len(row) >= 3 and row[1] and row[2]
+    # S列(index 18) = メニュー名、T列(index 19) = 説明文
+    # これらが存在する場合のみ有効
+    return row[18] and row[19]
