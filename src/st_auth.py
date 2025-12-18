@@ -38,4 +38,4 @@ def supabase_auth_widget() -> str:
         
         user_email = session['user']['email']
         st.write(f"ようこそ {user_email}")
-        logout_button(url=SUPABASE_URL, apiKey=SUPABASE_KEY, key="logout_btn")
+        logout_button()
