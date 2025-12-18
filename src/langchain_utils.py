@@ -7,8 +7,7 @@ import json
 from typing import List, Dict, Tuple
 import asyncio
 from .models import MenuItem
-from langchain_core.output_parsers import StructuredOutputParser
-from langchain_core.output_parsers import ResponseSchema
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
 # スキーマの定義
 response_schemas = [
