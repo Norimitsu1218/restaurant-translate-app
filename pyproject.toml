@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "restaurant-translate-app"
+version = "0.1.0"
+description = ""
+authors = ["kato-mahiro <kato.mahiro.3@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.40.2"
+openai = "^1.57.1"
+langchain = "^0.3.10"
+supabase = "^2.10.0"
+python-dotenv = "^1.0.1"
+pandas = "^2.2.3"
+langchain-community = "^0.3.13"
+langchain-openai = "^0.2.14"
+langchain-google-genai = "^2.0.7"
+streamlit-supabase-auth = "^1.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
