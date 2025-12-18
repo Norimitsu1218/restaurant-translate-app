@@ -18,7 +18,7 @@ def supabase_auth_widget() -> str:
         SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
     if not SUPABASE_URL or not SUPABASE_KEY:
-        st.error("Supabaseの認証情報が設定されていません。")
+        st.error("⚠️ Auth Widget Error: Secrets未設定")
         st.stop()
     
     # Supabaseクライアントの作成

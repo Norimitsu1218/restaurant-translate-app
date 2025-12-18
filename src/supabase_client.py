@@ -18,7 +18,7 @@ def init_supabase():
         supabase_key = os.getenv("SUPABASE_KEY")
     
     if not supabase_url or not supabase_key:
-        st.error("Supabaseの認証情報が設定されていません。Streamlit CloudのSecretsまたは.envファイルを確認してください。")
+        st.error(f"⚠️ 認証エラー: Secretsが見つかりません。 (URL={bool(supabase_url)}, Key={bool(supabase_key)}) Streamlit CloudのSecrets設定を確認してください。")
         st.stop()
     
     # Supabaseクライアントを作成
