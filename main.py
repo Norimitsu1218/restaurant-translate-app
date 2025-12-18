@@ -53,12 +53,12 @@ if "translated_contents_many" not in st.session_state:
 
 supabase_auth_widget()
 
-with st.sidebar:
-    #gemini_api_keyを表示・編集可能なウィジェットを作成
-    st.session_state["gemini_api_key"] = st_utils.get_gemini_api_key()
-    st.session_state["gemini_api_key"] = st.text_input("Gemini API Key", value=st.session_state["gemini_api_key"], type="password")
-    if st.button("🔑鍵を更新"):
-        st_utils.set_gemini_api_key(st.session_state["gemini_api_key"])
+#gemini_api_keyを表示・編集可能なウィジェットを作成
+st.sidebar.divider()
+st.session_state["gemini_api_key"] = st_utils.get_gemini_api_key()
+st.session_state["gemini_api_key"] = st.sidebar.text_input("Gemini API Key", value=st.session_state["gemini_api_key"], type="password", key="gemini_key_input")
+if st.sidebar.button("🔑鍵を更新", key="update_key_button"):
+    st_utils.set_gemini_api_key(st.session_state["gemini_api_key"])
 
 
 st.title("レストランメニュー翻訳アプリ")
