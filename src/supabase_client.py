@@ -8,14 +8,17 @@ load_dotenv()
 
 # Supabaseクライアントの初期化関数
 def init_supabase():
-    # 環境変数からSupabaseの認証情報を取得
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_KEY")
-    print(supabase_url)
-    print(supabase_key)
+    # 1. st.secrets から取得を試みる (Streamlit Cloud用)
+    try:
+        supabase_url = st.secrets["SUPABASE_URL"]
+        supabase_key = st.secrets["SUPABASE_KEY"]
+    except (FileNotFoundError, KeyError):
+         # 2. 環境変数から取得を試みる (ローカル開発用)
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
     
     if not supabase_url or not supabase_key:
-        st.error("Supabaseの認証情報が設定されていません。.envファイルを確認してください。")
+        st.error("Supabaseの認証情報が設定されていません。Streamlit CloudのSecretsまたは.envファイルを確認してください。")
         st.stop()
     
     # Supabaseクライアントを作成
