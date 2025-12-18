@@ -86,7 +86,7 @@ multi_trans_prompt = PromptTemplate(
 
 def get_llm(api_key: str, temperature: float = 0.0):
     return ChatGoogleGenerativeAI(
-        model=os.getenv("GEMINI_MODEL", "gemini-1.5-pro"),
+        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         google_api_key=api_key,
         temperature=temperature,
     )
