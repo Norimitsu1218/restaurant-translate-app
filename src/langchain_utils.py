@@ -1,13 +1,15 @@
 # langchain_utils.py
 
+from langchain_core.prompts import PromptTemplate
+from langchain.chains import LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 import streamlit as st
 import json
 from typing import List, Dict, Tuple
 import asyncio
 from .models import MenuItem
-from langchain.output_parsers import StructuredOutputParser
-from langchain.output_parsers import ResponseSchema
+from langchain_core.output_parsers import StructuredOutputParser
+from langchain_core.output_parsers import ResponseSchema
 
 # スキーマの定義
 response_schemas = [
