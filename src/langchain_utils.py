@@ -8,9 +8,9 @@ from typing import List, Dict, Tuple
 import asyncio
 from .models import MenuItem
 try:
-    from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-except ImportError:
     from langchain_classic.output_parsers import StructuredOutputParser, ResponseSchema
+except ImportError:
+    from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
 # スキーマの定義
 response_schemas = [
