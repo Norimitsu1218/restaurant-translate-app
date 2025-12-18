@@ -10,8 +10,7 @@ from .models import MenuItem
 try:
     from langchain_core.output_parsers import StructuredOutputParser, ResponseSchema
 except ImportError:
-    from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-
+from langchain_classic.output_parsers import StructuredOutputParser, ResponseSchema
 # スキーマの定義
 response_schemas = [
     ResponseSchema(name="menu_title", description="メニューのタイトル"),
