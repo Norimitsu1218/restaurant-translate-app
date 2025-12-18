@@ -1,16 +1,19 @@
-# langchain_utils.py
+from __future__ import annotations
 
+from typing import List, Dict, Tuple, Any
+import asyncio
+import json
+import re
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 import streamlit as st
-import json
-from typing import List, Dict, Tuple
-import asyncio
+
 from .models import MenuItem
-try:
-    from langchain_core.output_parsers import StructuredOutputParser, ResponseSchema
-except ImportError:
+
+# LangChain v1系で output_parsers の場所が割れるので、ここは classic に固定して安定化
 from langchain_classic.output_parsers import StructuredOutputParser, ResponseSchema
+
+
 # スキーマの定義
 response_schemas = [
     ResponseSchema(name="menu_title", description="メニューのタイトル"),
