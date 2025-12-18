@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Any
 import asyncio
 import json
 import re
+import os
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 import streamlit as st
