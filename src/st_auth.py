@@ -13,18 +13,18 @@ def supabase_auth_widget() -> str:
     # Supabaseクライアントの作成
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     
-    session = login_form(
-        url=SUPABASE_URL,
-        apiKey=SUPABASE_KEY,
-        providers=[],
-    )
-    # 未ログインの場合は処理を終了
-    if not session:
-        st.stop()
-    else:
+    # 認証ウィジェットをサイドバーの上部に配置
+    auth_container = st.sidebar.container()
+    with auth_container:
+        session = login_form(
+            url=SUPABASE_URL,
+            apiKey=SUPABASE_KEY,
+            providers=[],
+        )
+        # 未ログインの場合は処理を一旦止める
+        if not session:
+            st.stop()
+        
         user_email = session['user']['email']
-        user_id = session['user']['id']
-        access_token = session['access_token']
-        refresh_token = session['refresh_token']
-        st.sidebar.write(f"ようこそ {user_email}")
+        st.write(f"ようこそ {user_email}")
         logout_button(key="logout_btn")

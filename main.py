@@ -33,32 +33,45 @@ translated_contents_many: Dict[str, List[MenuItem]] = {
 
 # セッション状態の初期化
 if "supabase" not in st.session_state:
-    supabase = get_supabase()
-    st.session_state["supabase"] = supabase
+    st.session_state["supabase"] = get_supabase()
 
 if "gemini_api_key" not in st.session_state:
     st.session_state["gemini_api_key"] = ""
 
 if "target_contents" not in st.session_state:
-    st.session_state["target_contents"] = target_contents
+    st.session_state["target_contents"] = []
 
 if "cleaned_contents" not in st.session_state:
-    st.session_state["cleaned_contents"] = cleaned_contents
+    st.session_state["cleaned_contents"] = []
 
 if "translated_contents" not in st.session_state:
-    st.session_state["translated_contents"] = translated_contents
+    st.session_state["translated_contents"] = []
 
 if "translated_contents_many" not in st.session_state:
     st.session_state["translated_contents_many"] = translated_contents_many
 
+# 認証ウィジェットの実行
 supabase_auth_widget()
 
-#gemini_api_keyを表示・編集可能なウィジェットを作成
-st.sidebar.divider()
-st.session_state["gemini_api_key"] = st_utils.get_gemini_api_key()
-st.session_state["gemini_api_key"] = st.sidebar.text_input("Gemini API Key", value=st.session_state["gemini_api_key"], type="password", key="gemini_key_input")
-if st.sidebar.button("🔑鍵を更新", key="update_key_button"):
-    st_utils.set_gemini_api_key(st.session_state["gemini_api_key"])
+# サイドバーの構築
+with st.sidebar:
+    st.divider()
+    # APIキーが未取得の場合のみSupabaseから取得
+    if not st.session_state["gemini_api_key"]:
+        st.session_state["gemini_api_key"] = st_utils.get_gemini_api_key()
+    
+    # APIキーの入力
+    new_key = st.text_input(
+        "Gemini API Key", 
+        value=st.session_state["gemini_api_key"], 
+        type="password", 
+        key="gemini_key_input"
+    )
+    
+    if st.button("🔑鍵を更新", key="update_key_button"):
+        st_utils.set_gemini_api_key(new_key)
+        st.session_state["gemini_api_key"] = new_key
+        st.success("APIキーを更新しました")
 
 
 st.title("レストランメニュー翻訳アプリ")
