@@ -74,7 +74,7 @@ with st.sidebar:
         st.success("APIキーを更新しました")
 
 
-st.title("レストランメニュー翻訳アプリ 🚀v2.0")
+st.title("レストランメニュー翻訳アプリ")
 uploaded_file = st.file_uploader("⬆️csvをアップロード", type="csv")
 target_contents: List[MenuItem] = []
 
