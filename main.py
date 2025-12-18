@@ -88,8 +88,8 @@ if uploaded_file is not None:
             if is_valid_row(row, ["キーワードは無し(メニューのみ翻訳)"]):
                 # 有効な行からMenuItemを作成
                 menu_item = MenuItem(
-                    menu_title=row[1],
-                    menu_content=row[2]
+                    menu_title=row[18],
+                    menu_content=row[19]
                 )
                 target_contents.append(menu_item)
                 
