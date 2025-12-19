@@ -97,10 +97,68 @@ persona_options = {
 }
 selected_persona = st.sidebar.radio("🎭 食レポの文体 (Persona)", list(persona_options.keys()))
 persona_instruction = persona_options[selected_persona]
+# 2. 店舗設定 (Store Settings)
+# store_name がないとDB登録できないため必須化
+store_name_input = st.sidebar.text_input("🏠 店舗名 (Store Name)", value="Test Store", help="この名前でデータベースに登録されます")
 
-# 2. 店舗URL (コンテクスト)
+# 3. 店舗URL (コンテクスト)
 store_url = st.sidebar.text_input("🔗 店舗のURL (コンテクスト解析用)", placeholder="https://tabelog.com/...")
 store_context = ""
+supabase = st.session_state.get("supabase")
+
+if not supabase:
+    st.error("Supabase client is not initialized. Please login via main page.")
+    st.stop()
+
+def register_store_if_needed(name: str, url: str) -> str:
+    """店舗名を検索し、なければ新規登録してIDを返す"""
+    try:
+        # 検索
+        res = supabase.table("stores").select("id").eq("store_name", name).execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0]["id"]
+        
+        # 新規登録
+        new_store = {"store_name": name, "store_url": url, "plan_code": "standard"}
+        res = supabase.table("stores").insert(new_store).execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0]["id"]
+        return None
+    except Exception as e:
+        st.error(f"Store registration failed: {e}")
+        return None
+
+def save_menu_to_db(store_id: str, items: List[dict], persona: str):
+    """メニューデータをmenu_masterに保存"""
+    db_rows = []
+    for item in items:
+        # Pydanticモデルから辞書へ変換済み前提
+        # priceのクリーニング (数字のみ抽出)
+        raw_price = str(item.get("price", "0"))
+        import re
+        price_match = re.search(r'\d+', raw_price)
+        price_val = int(price_match.group()) if price_match else 0
+        
+        row = {
+            "store_id": store_id,
+            "category": item.get("category"),
+            "detected_name": item.get("menu_name_jp", ""),
+            "price": price_val,
+            "menu_name_ja": item.get("menu_name_jp", ""), # 初期値は検出名と同じ
+            "description_ja_18s": item.get("description_rich", ""),
+            "description_ja_status": "generated",
+            "persona": persona,
+            "allergen_data": item.get("allergens", {}), # JSONB
+            # 他言語はNULLでOK
+        }
+        db_rows.append(row)
+    
+    if db_rows:
+        supabase.table("menu_master").insert(db_rows).execute()
+
+# コストログ用 (langchain_utilsからimportしたいが、pagesフォルダなのでsys.path考慮が必要)
+# 簡易的にここで定義、または src から import するが、一旦簡易実装
+from src.langchain_utils import log_api_usage
 
 if store_url:
     try:
@@ -205,6 +263,51 @@ if uploaded_file:
                 # --- デバッグ表示 ---
                 with st.expander("🔍 AI解析データの生ログを確認する (Debug)"):
                     st.json(items_data)
+
+                # --- データベースへの保存 ---
+                if store_name_input:
+                    try:
+                        with st.spinner("💾 データベースに保存中..."):
+                            # 1. Store ID 取得
+                            store_id = register_store_if_needed(store_name_input, store_url)
+                            
+                            # 2. メニュー保存
+                            if store_id:
+                                # items_data は辞書のリスト、ただし allergens がフラットかネストかなど揺らぎがある
+                                # Pydanticの `MenuExtractionResult` でパース済みなら形は綺麗だが、
+                                # JsonOutputParserの出力は raw dict なので、ここで少し整形が必要
+                                
+                                # 整形用リスト
+                                clean_items = []
+                                for item in items_data:
+                                    if not isinstance(item, dict): continue
+                                    
+                                    # アレルゲン整形
+                                    base_allergens = item.get("allergens", item) # フラットかネストか
+                                    # 必要なキーだけ抽出してJSONBへ
+                                    allergen_keys = ["wheat","crustacean","egg","fish","soy","peanut","milk","walnut","celery","mustard","sesame","sulfite","lupinus","mollusc"]
+                                    clean_allergen = {k: bool(base_allergens.get(k, False)) for k in allergen_keys}
+                                    
+                                    item["allergens"] = clean_allergen
+                                    clean_items.append(item)
+                                
+                                save_menu_to_db(store_id, clean_items, selected_persona)
+                                st.success(f"🎉 データベース(MENU_MASTER)への保存が完了しました！ Store: {store_name_input}")
+                                
+                                # Usage Log capture is tricky with LCEL invoke return value directly.
+                                # For now, we rely on the implementation in langchain_utils if we were using it, 
+                                # but here we used raw chain. The usage metadata might be lost in result dict.
+                                # Future Work: Pass callbacks to capture token usage here using log_api_usage.
+                                if hasattr(result, "response_metadata"):
+                                     # JsonOutputParserを通すと response_metadata が消えることがあるため、
+                                     # invokeの結果が Pydantic object なら良いが、dictだとない。
+                                     # いったんここはスキップし、「翻訳フェーズ」でログを確実にとる運用とする。
+                                     pass
+
+                            else:
+                                st.error("店舗IDの取得に失敗しました。")
+                    except Exception as e:
+                        st.error(f"DB保存エラー: {e}")
                 
                 # DataFrameの作成 (48列) - プレフィックス(A:など)を削除
                 # カラム定義
