@@ -8,3 +8,5 @@ supabase>=2.10.0
 python-dotenv>=1.0.1
 pandas>=2.2.3
 streamlit-supabase-auth>=1.0.2
+Pillow
+pydantic
