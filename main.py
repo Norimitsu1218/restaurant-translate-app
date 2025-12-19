@@ -213,7 +213,8 @@ if st.session_state["target_contents"]:
                     results = asyncio.run(langchain_utils.translate_english_to_many_async(
                         menu_items=st.session_state["translated_contents"],
                         target_languages=st.session_state["translated_contents_many"],
-                        api_key=st.session_state["gemini_api_key"]
+                        api_key=st.session_state["gemini_api_key"],
+                        persona=selected_persona
                     ))
                     
                     # 結果をセッション状態に保存

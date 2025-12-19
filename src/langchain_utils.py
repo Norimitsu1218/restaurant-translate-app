@@ -67,8 +67,13 @@ ja_to_en_prompt = PromptTemplate(
 # --------------------------------------------------------------------
 # 3) 英語 → 多言語翻訳のためのプロンプト
 # --------------------------------------------------------------------
+# --------------------------------------------------------------------
+# 3) 英語 → 多言語翻訳のためのプロンプト
+# --------------------------------------------------------------------
 multi_trans_template = """
 以下の英語テキストを {target_language} に翻訳してください。
+
+{persona_instruction}
 
 {format_instructions}
 
@@ -79,10 +84,18 @@ multi_trans_template = """
 """
 
 multi_trans_prompt = PromptTemplate(
-    input_variables=["english_text", "target_language"],
+    input_variables=["english_text", "target_language", "persona_instruction"],
     partial_variables={"format_instructions": output_parser.get_format_instructions()},
     template=multi_trans_template
 )
+
+# ペルソナ定義（メインアプリと共通化検討だが、一旦ここに定義）
+PERSONA_PROMPTS = {
+    "東京カレンダー風 (艶やか)": "Translate in a sophisticated, alluring, and rich tone, similar to high-end lifestyle magazines (like Tokyo Calendar). Use evocative and emotional language.",
+    "居酒屋の大将風 (元気)": "Translate in a friendly, energetic, and casual tone, like a lively Izakaya owner. Use punchy and welcoming language.",
+    "高級料亭風 (厳格)": "Translate in a highly formal, polite, and respectful tone, typical of a luxury Ryotei. Use elegant and traditional phrasing.",
+    "標準 (丁寧)": "Translate in a standard, polite, and clear tone.",
+}
 
 def get_llm(api_key: str, temperature: float = 0.0):
     return ChatGoogleGenerativeAI(
@@ -126,16 +139,39 @@ def remove_unnecessary_parts(text_list: List[MenuItem], api_key: str) -> List[Me
     my_bar.progress(100, text=f"✅ 日本語校正完了")
     return results
 
-def translate_japanese_to_english(menu_items: List[MenuItem], api_key: str) -> List[MenuItem]:
+def translate_japanese_to_english(menu_items: List[MenuItem], api_key: str, persona: str = "標準 (丁寧)") -> List[MenuItem]:
     """日本語のMenuItemリストを英語に翻訳し、結果をMenuItemのリストで返す"""
     llm = get_llm(api_key)
-    chain = ja_to_en_prompt | llm | output_parser
+    
+    # 英語翻訳用プロンプトにもペルソナ適用
+    ja_to_en_template_persona = """
+    外国人観光客向けに、以下の日本語メニューを自然な英語に翻訳してください。
+    
+    {persona_instruction}
+    
+    {format_instructions}
+    
+    【日本語】
+    {cleaned_japanese_text}
+    
+    【英語訳】
+    """
+    
+    ja_to_en_prompt_persona = PromptTemplate(
+        input_variables=["cleaned_japanese_text", "persona_instruction"],
+        partial_variables={"format_instructions": output_parser.get_format_instructions()},
+        template=ja_to_en_template_persona
+    )
+
+    chain = ja_to_en_prompt_persona | llm | output_parser
     
     results = []
     progress_text = "🔤 英語翻訳"
     my_bar = st.progress(0, text=progress_text)
     total_items = len(menu_items)
     
+    persona_instruction = PERSONA_PROMPTS.get(persona, PERSONA_PROMPTS["標準 (丁寧)"])
+
     for i, menu_item in enumerate(menu_items, 1):
         try:
             input_text = {
@@ -143,7 +179,10 @@ def translate_japanese_to_english(menu_items: List[MenuItem], api_key: str) -> L
                 "menu_content": menu_item.menu_content
             }
             # LCEL invoke
-            parsed_output = chain.invoke({"cleaned_japanese_text": json.dumps(input_text, ensure_ascii=False)})
+            parsed_output = chain.invoke({
+                "cleaned_japanese_text": json.dumps(input_text, ensure_ascii=False),
+                "persona_instruction": persona_instruction
+            })
             
             translated_item = MenuItem(
                 menu_title=parsed_output["menu_title"],
@@ -161,7 +200,7 @@ def translate_japanese_to_english(menu_items: List[MenuItem], api_key: str) -> L
     my_bar.progress(100, text=f"✅ 英語翻訳完了")
     return results
 
-async def translate_english_to_many_async(menu_items: List[MenuItem], target_languages: Dict[str, List[MenuItem]], api_key: str) -> Dict[str, List[MenuItem]]:
+async def translate_english_to_many_async(menu_items: List[MenuItem], target_languages: Dict[str, List[MenuItem]], api_key: str, persona: str = "標準 (丁寧)") -> Dict[str, List[MenuItem]]:
     """英語から指定言語への翻訳を非同期で並列実行"""
     llm = get_llm(api_key)
     chain = multi_trans_prompt | llm | output_parser
@@ -169,6 +208,8 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
     error_messages = []
     rate_limit_status = {"is_waiting": False}
     
+    persona_instruction = PERSONA_PROMPTS.get(persona, PERSONA_PROMPTS["標準 (丁寧)"])
+
     async def translate_with_retry(input_dict: dict, lang: str, max_retries: int = 5, initial_wait: float = 10.0) -> dict:
         wait_time = initial_wait
         for attempt in range(max_retries):
@@ -178,7 +219,8 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                 # LCEL ainvoke
                 return await chain.ainvoke({
                     "english_text": json.dumps(input_dict, ensure_ascii=False),
-                    "target_language": lang
+                    "target_language": lang,
+                    "persona_instruction": persona_instruction
                 })
             except Exception as e:
                 error_msg = str(e).lower()
