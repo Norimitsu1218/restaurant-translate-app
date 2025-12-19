@@ -86,6 +86,39 @@ class MenuExtractionResult(BaseModel):
     items: List[MenuItemExtracted]
 
 # --- メイン処理 ---
+st.sidebar.header("🔧 設定 (Settings)")
+
+# 1. ペルソナ選択
+persona_options = {
+    "東京カレンダー風 (艶やか)": "文体は『東京カレンダー』のような、少し艶っぽく洗練されたトーンで。情景が浮かぶような情緒的な表現を使ってください。",
+    "居酒屋の大将風 (元気)": "文体は『元気のいい居酒屋の大将』のように、親しみやすく活気のあるトーンで。「〜だぜ」「〜だよな」など、威勢のいい言葉遣いを使ってください。",
+    "高級料亭風 (厳格)": "文体は『老舗料亭の女将』のように、丁寧かつ格式高いトーンで。「〜でございます」「〜いたします」など、上品な言葉遣いを使ってください。",
+    "標準 (丁寧)": "文体は一般的なレストランメニューのように、丁寧でわかりやすいトーンで書いてください。"
+}
+selected_persona = st.sidebar.radio("🎭 食レポの文体 (Persona)", list(persona_options.keys()))
+persona_instruction = persona_options[selected_persona]
+
+# 2. 店舗URL (コンテクスト)
+store_url = st.sidebar.text_input("🔗 店舗のURL (コンテクスト解析用)", placeholder="https://tabelog.com/...")
+store_context = ""
+
+if store_url:
+    try:
+        # 簡易スクレイピング
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        response = requests.get(store_url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            title = soup.title.string if soup.title else ""
+            # meta description
+            meta = soup.find('meta', attrs={'name': 'description'}) or soup.find('meta', attrs={'property': 'og:description'})
+            desc = meta.get('content') if meta else ""
+            store_context = f"【店舗情報】\n店名/タイトル: {title}\n店舗概要: {desc}\nURL: {store_url}\n(この店舗の雰囲気やコンセプトに合わせて食レポを作成してください)"
+            st.sidebar.success("✅ 店舗情報を取得しました")
+        else:
+            st.sidebar.warning(f"URL読み込み失敗: Status {response.status_code}")
+    except Exception as e:
+        st.sidebar.error(f"URL読み込みエラー: {e}")
 
 uploaded_file = st.file_uploader("メニューの写真をアップロードしてください", type=["jpg", "jpeg", "png"])
 
@@ -106,9 +139,15 @@ if uploaded_file:
                 img_bytes = img_byte_arr.getvalue()
 
                 # プロンプトの構築
-                prompt_text = """
+                prompt_text = f"""
                 あなたはプロのフードライター兼メニューエンジニアです。
                 このメニュー画像を分析し、記載されている料理をリストアップしてください。
+                
+                # 参考知識 (Knowledge Base)
+                - 日本の食材や料理に関する詳細な知識は、`https://japan-word.com/site-map.html` にあるような専門的かつ文化的な背景情報を参考にしてください。正確な食材の定義や文化的意義を反映させてください。
+                
+                # 店舗コンテクスト (Store Context)
+                {store_context}
                 
                 各料理について、以下の情報を抽出・創作してください：
                 1. 【重要】メニュー名（日本語）
@@ -128,7 +167,7 @@ if uploaded_file:
                    - ただの説明ではなく、読んだ人が「食べたい！」と思うような「食レポ」調で書いてください。
                    - 黙読で約18秒（60〜100文字程度）の長さにまとめること。
                    - その料理の「美味しい食べ方」や「おすすめのペアリング（お酒など）」も創作して盛り込んでください。
-                   - 文体は「東京カレンダー」のような、少し艶っぽく洗練されたトーンでお願いします。
+                   - {persona_instruction}
                 
                 5. アレルギー物質の推測:
                    - メニュー名や見た目から、含まれている可能性が高いアレルゲン（小麦、卵、エビカニ等）をTrueにしてください。
