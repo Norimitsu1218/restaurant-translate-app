@@ -189,8 +189,10 @@ if uploaded_file:
                         skipped_count += 1
                         continue
                     
-                    # 2. メニュー名が空の場合はスキップ（カテゴリだけ入るのを防ぐ）
-                    menu_name = item.get("menu_name_jp", "")
+                    # 2. メニュー名を取得（揺らぎに対応：menu_name_jp, menu_name, name）
+                    menu_name = item.get("menu_name_jp") or item.get("menu_name") or item.get("name") or ""
+                    
+                    # メニュー名が空の場合はスキップ（カテゴリだけ入るのを防ぐ）
                     if not menu_name or menu_name.strip() == "":
                         skipped_count += 1
                         continue
@@ -202,24 +204,33 @@ if uploaded_file:
                     row["カテゴリ"] = item.get("category", "")
                     
                     # アレルゲン
-                    row["小麦"] = "TRUE" if item.get("wheat") else "FALSE"
-                    row["甲殻類"] = "TRUE" if item.get("crustacean") else "FALSE"
-                    row["卵"] = "TRUE" if item.get("egg") else "FALSE"
-                    row["魚"] = "TRUE" if item.get("fish") else "FALSE"
-                    row["大豆"] = "TRUE" if item.get("soy") else "FALSE"
-                    row["ピーナッツ"] = "TRUE" if item.get("peanut") else "FALSE"
-                    row["牛乳"] = "TRUE" if item.get("milk") else "FALSE"
-                    row["くるみ"] = "TRUE" if item.get("walnut") else "FALSE"
-                    row["セロリ"] = "TRUE" if item.get("celery") else "FALSE"
-                    row["マスタード"] = "TRUE" if item.get("mustard") else "FALSE"
-                    row["ゴマ"] = "TRUE" if item.get("sesame") else "FALSE"
-                    row["亜硫酸塩"] = "TRUE" if item.get("sulfite") else "FALSE"
-                    row["ルピナス"] = "TRUE" if item.get("lupinus") else "FALSE"
-                    row["貝"] = "TRUE" if item.get("mollusc") else "FALSE"
+                    # AIの出力が { "allergens": { "wheat": true } } のようなネスト構造の場合と
+                    # { "wheat": true } のようなフラット構造の場合があるため両対応
+                    allergens = item.get("allergens", item) # "allergens"キーがあればそれを使う、なければitemそのもの
+                    
+                    # アレルゲンキーのマッピング（AI出力キー → CSV列名）
+                    # Debugログを見ると "wheat": true などの形式
+                    row["小麦"] = "TRUE" if allergens.get("wheat") else "FALSE"
+                    row["甲殻類"] = "TRUE" if (allergens.get("crustacean") or allergens.get("shrimp_crab")) else "FALSE"
+                    row["卵"] = "TRUE" if allergens.get("egg") else "FALSE"
+                    row["魚"] = "TRUE" if (allergens.get("fish") or allergens.get("fish_shellfish")) else "FALSE"
+                    row["大豆"] = "TRUE" if (allergens.get("soy") or allergens.get("soybean")) else "FALSE"
+                    row["ピーナッツ"] = "TRUE" if allergens.get("peanut") else "FALSE"
+                    row["牛乳"] = "TRUE" if (allergens.get("milk") or allergens.get("dairy")) else "FALSE"
+                    row["くるみ"] = "TRUE" if allergens.get("walnut") else "FALSE"
+                    row["セロリ"] = "TRUE" if allergens.get("celery") else "FALSE"
+                    row["マスタード"] = "TRUE" if allergens.get("mustard") else "FALSE"
+                    row["ゴマ"] = "TRUE" if allergens.get("sesame") else "FALSE"
+                    row["亜硫酸塩"] = "TRUE" if (allergens.get("sulfite") or allergens.get("sulphite")) else "FALSE"
+                    row["ルピナス"] = "TRUE" if allergens.get("lupinus") else "FALSE"
+                    row["貝"] = "TRUE" if (allergens.get("mollusc") or allergens.get("shellfish")) else "FALSE"
                     
                     # メインコンテンツ
+                    # 説明文も揺らぎに対応
+                    description = item.get("description_rich") or item.get("menu_content") or item.get("description") or ""
+                    
                     row["日本語メニュー名"] = menu_name
-                    row["日本語説明"] = item.get("description_rich", "")
+                    row["日本語説明"] = description
                     
                     csv_data.append(row)
                 
