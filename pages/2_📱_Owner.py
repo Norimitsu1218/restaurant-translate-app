@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.langchain_utils import MenuItem, translate_japanese_to_english, translate_english_to_many_async
 from src.st_utils import get_gemini_api_key
+from src.payment_guard import PaymentGuard
 
 st.set_page_config(
     page_title="Owner Dashboard", 
@@ -116,6 +117,28 @@ col1, col2 = st.columns([1, 3])
 with col1:
     if st.button("💾 変更を保存 (Save Files)", type="primary"):
         try:
+            # 0. PaymentGuard Check for New Rows
+            # 新規行(idがない)がある場合のみカウントチェック
+            # ただし、data_editorの仕様上、new rows判定は難しい場合もあるが、
+            # edit_df の中で id が空の行を数える
+            # ここではシンプルに「Save時点での総数」がLimitを超えていたらエラーにする（既存更新はOKにしたいが）
+             
+            # 正確には: DBの現状カウント + 新規追加数 <= Limit
+            
+            # 今回は簡易的に「保存しようとしているデータの中に新規行があれば、Limitチェック」
+            # upsertなので、既存行はOK。新規行(without id)のみカウント
+            new_items_count = len([row for index, row in edited_df.iterrows() if not row.get("id") or pd.isna(row.get("id")) or str(row.get("id")).strip() == ""])
+            
+            if new_items_count > 0:
+                guard = PaymentGuard(supabase)
+                status = guard.check_item_limit(store_id)
+                remaining = status.get("remaining", 0)
+                
+                if new_items_count > remaining:
+                     st.error(f"無料プランの上限(5品)を超えるため、{new_items_count}品の新規追加は保存できません。(残り枠: {remaining})")
+                     guard.render_upsell_message()
+                     st.stop()
+            
             # 1. 更新 (Modified items)
             # data_editor の全データを iterateして upsert するのが一番確実
             # (only diff is sent usually, but for simplicity we assume full sync or rely on 'edited_rows' if using session state callbacks, but full upsert is easier to implement)

@@ -11,3 +11,4 @@ streamlit-supabase-auth>=1.0.2
 Pillow
 pydantic
 beautifulsoup4
+qrcode
