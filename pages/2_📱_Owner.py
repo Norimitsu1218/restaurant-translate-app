@@ -1,6 +1,16 @@
 import streamlit as st
 import pandas as pd
 import time
+import asyncio
+import json
+import sys
+import os
+
+# Root path adjustment to import src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.langchain_utils import MenuItem, translate_japanese_to_english, translate_english_to_many_async
+from src.st_utils import get_gemini_api_key
 
 st.set_page_config(
     page_title="Owner Dashboard", 
@@ -144,9 +154,106 @@ with col1:
             st.error(f"Save Error: {e}")
 
 with col2:
-    if st.button("🌍 翻訳を実行 (Phase 6 Start)"):
-        # TODO: call translation function
-        st.info("🔜 このボタンを押すと、確定したメニューが14言語に翻訳されます (実装準備中)")
+    if st.button("🌍 翻訳を実行 (Phase 6 Start)", type="primary"):
+        # 1. API Key Check
+        api_key = get_gemini_api_key()
+        if not api_key:
+            st.error("Gemini API Keyが設定されていません。メインページでAPIキーを設定してください。")
+            st.stop()
+            
+        # 2. 対象データ取得
+        # confirmedかつ、translationsが未完了(空)のもの、あるいは全て再翻訳？
+        # ここではシンプルに「表示されているデータ全て」を翻訳対象とする（Upsert済みのもの）
+        # 最新のデータをDBから再取得
+        current_menu = fetch_menu(store_id)
+        if not current_menu:
+            st.warning("翻訳するメニューがありません。")
+            st.stop()
+            
+        # MenuItemオブジェクトへの変換
+        menu_items_obj = []
+        # DB IDとindexの紐付け用
+        db_id_map = {} 
+        
+        for idx, row in enumerate(current_menu):
+            # category: str, menu_name_ja: str, price: int, description_ja_18s: str ...
+            item = MenuItem(
+                menu_title=row.get("menu_name_ja", ""),
+                menu_content=row.get("description_ja_18s", "")
+            )
+            menu_items_obj.append(item)
+            db_id_map[idx] = row["id"]
+            
+        st.write(f"🚀 {len(menu_items_obj)} 品の翻訳を開始します... (これには時間がかかります)")
+        progress_bar = st.progress(0, text="翻訳準備中...")
+        
+        # 3. 実行 (Async)
+        try:
+            # Phase 6a: Ja -> En
+            st.toast("日本語 → 英語 翻訳中...")
+            persona = current_menu[0].get("persona", "標準 (丁寧)") # 1件目のペルソナを採用
+            
+            # Sync function call
+            english_results = translate_japanese_to_english(menu_items_obj, api_key, persona)
+            
+            # Phase 6b: En -> Multi-Lang
+            st.toast("英語 → 14言語 展開中... (Suzuka Engine)")
+            
+            # 定義済みの14言語 (CSV定義準拠)
+            # 韓国, 中国, 台湾, 広東, タイ, フィリピン, ベトナム, インドネシア, スペイン, ドイツ, フランス, イタリア, ポルトガル
+            # (csv_utils.pyなどから共通化すべきだが、一旦ハードコード)
+            target_langs = {
+                "ko": [], "zh": [], "zh-TW": [], "yue": [], "th": [],
+                "tl": [], "vi": [], "id": [], "es": [], "de": [], "fr": [], "it": [], "pt": []
+            }
+            # ※注: Geminiの言語コードに合わせてマッピングが必要だが、プロンプトで言語名を指定しているのでキーはそのままでOK
+            
+            # async実行のために event loop を作成/取得
+            # Streamlit上でのasync実行は asyncio.run() でいける
+            translated_multilang = asyncio.run(translate_english_to_many_async(english_results, target_langs, api_key, persona))
+            
+            # 4. 結果の結合とDB保存
+            payload = []
+            for idx, en_item in enumerate(english_results):
+                row_id = db_id_map[idx]
+                
+                # 翻訳データの構築 structure: { "en": {title, content}, "fr": {title, content}, ... }
+                trans_json = {
+                    "en": {
+                        "menu_title": en_item.menu_title,
+                        "menu_content": en_item.menu_content
+                    }
+                }
+                
+                # 多言語分の追加
+                for lang_code, items_list in translated_multilang.items():
+                    # items_list[idx] が対応するアイテム
+                    if idx < len(items_list):
+                        m_item = items_list[idx]
+                        trans_json[lang_code] = {
+                            "menu_title": m_item.menu_title,
+                            "menu_content": m_item.menu_content
+                        }
+                
+                payload.append({
+                    "id": row_id,
+                    "store_id": store_id,
+                    "translations": trans_json, # JSONB update
+                    "description_ja_status": "translated",
+                    "updated_at": "now()"
+                })
+            
+            # DB更新
+            supabase.table("menu_master").upsert(payload).execute()
+            
+            progress_bar.progress(100, text="✅ 全言語翻訳完了！")
+            st.success("🎉 世界への扉が開かれました！ (翻訳データ保存完了)")
+            time.sleep(2)
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Translation Error: {e}")
+            
 
 st.divider()
 st.caption("Note: 行を削除した場合、データベースからは物理削除されず残る場合があります（実装次第）。現在はUpsertのみ実装。")
