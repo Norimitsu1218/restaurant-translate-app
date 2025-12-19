@@ -179,48 +179,55 @@ if uploaded_file:
                 
                 # DataFrameの作成 (48列)
                 # カラム定義 (A-AV)
+                # DataFrameの作成 (48列) - プレフィックス(A:など)を削除
+                # カラム定義
                 columns = [
-                    "A:税込み価格", "B:画像", "C:カテゴリ", "D:おすすめ", 
-                    "E:小麦", "F:甲殻類", "G:卵", "H:魚", "I:大豆", "J:ピーナッツ", "K:牛乳", "L:くるみ", "M:セロリ", "N:マスタード", "O:ゴマ", "P:亜硫酸塩", "Q:ルピナス", "R:貝",
-                    "S:日本語メニュー名", "T:日本語説明", 
-                    "U:英語メニュー名", "V:英語説明", "W:韓国語メニュー名", "X:韓国語説明", "Y:中国語メニュー名", "Z:中国語説明",
-                    "AA:台湾語メニュー名", "AB:台湾語説明", "AC:広東語メニュー名", "AD:広東語説明", "AE:タイ語メニュー名", "AF:タイ語説明",
-                    "AG:フィリピン語メニュー名", "AH:フィリピン語説明", "AI:ベトナム語メニュー名", "AJ:ベトナム語説明", "AK:インドネシア語メニュー名", "AL:インドネシア語説明",
-                    "AM:スペイン語メニュー名", "AN:スペイン語説明", "AO:ドイツ語メニュー名", "AP:ドイツ語説明", "AQ:フランス語メニュー名", "AR:フランス語説明",
-                    "AS:イタリア語メニュー名", "AT:イタリア語説明", "AU:ポルトガル語メニュー名", "AV:ポルトガル語説明"
+                    "税込み価格", "画像", "カテゴリ", "おすすめ", 
+                    "小麦", "甲殻類", "卵", "魚", "大豆", "ピーナッツ", "牛乳", "くるみ", "セロリ", "マスタード", "ゴマ", "亜硫酸塩", "ルピナス", "貝",
+                    "日本語メニュー名", "日本語説明", 
+                    "英語メニュー名", "英語説明", "韓国語メニュー名", "韓国語説明", "中国語メニュー名", "中国語説明",
+                    "台湾語メニュー名", "台湾語説明", "広東語メニュー名", "広東語説明", "タイ語メニュー名", "タイ語説明",
+                    "フィリピン語メニュー名", "フィリピン語説明", "ベトナム語メニュー名", "ベトナム語説明", "インドネシア語メニュー名", "インドネシア語説明",
+                    "スペイン語メニュー名", "スペイン語説明", "ドイツ語メニュー名", "ドイツ語説明", "フランス語メニュー名", "フランス語説明",
+                    "イタリア語メニュー名", "イタリア語説明", "ポルトガル語メニュー名", "ポルトガル語説明"
                 ]
                 
                 csv_data = []
                 for item in items_data:
-                    # ここで item が辞書型でない場合（文字列など）はスキップする安全策を追加
+                    # 1. 辞書型でない場合はスキップ
                     if not isinstance(item, dict):
+                        continue
+                    
+                    # 2. メニュー名が空の場合はスキップ（カテゴリだけ入るのを防ぐ）
+                    menu_name = item.get("menu_name_jp", "")
+                    if not menu_name or menu_name.strip() == "":
                         continue
 
                     row = {col: "" for col in columns} # 初期化
                     
                     # AI抽出データのマッピング
-                    row["A:税込み価格"] = item.get("price", "")
-                    row["C:カテゴリ"] = item.get("category", "")
+                    row["税込み価格"] = item.get("price", "")
+                    row["カテゴリ"] = item.get("category", "")
                     
                     # アレルゲン
-                    row["E:小麦"] = "TRUE" if item.get("wheat") else "FALSE"
-                    row["F:甲殻類"] = "TRUE" if item.get("crustacean") else "FALSE"
-                    row["G:卵"] = "TRUE" if item.get("egg") else "FALSE"
-                    row["H:魚"] = "TRUE" if item.get("fish") else "FALSE"
-                    row["I:大豆"] = "TRUE" if item.get("soy") else "FALSE"
-                    row["J:ピーナッツ"] = "TRUE" if item.get("peanut") else "FALSE"
-                    row["K:牛乳"] = "TRUE" if item.get("milk") else "FALSE"
-                    row["L:くるみ"] = "TRUE" if item.get("walnut") else "FALSE"
-                    row["M:セロリ"] = "TRUE" if item.get("celery") else "FALSE"
-                    row["N:マスタード"] = "TRUE" if item.get("mustard") else "FALSE"
-                    row["O:ゴマ"] = "TRUE" if item.get("sesame") else "FALSE"
-                    row["P:亜硫酸塩"] = "TRUE" if item.get("sulfite") else "FALSE"
-                    row["Q:ルピナス"] = "TRUE" if item.get("lupinus") else "FALSE"
-                    row["R:貝"] = "TRUE" if item.get("mollusc") else "FALSE"
+                    row["小麦"] = "TRUE" if item.get("wheat") else "FALSE"
+                    row["甲殻類"] = "TRUE" if item.get("crustacean") else "FALSE"
+                    row["卵"] = "TRUE" if item.get("egg") else "FALSE"
+                    row["魚"] = "TRUE" if item.get("fish") else "FALSE"
+                    row["大豆"] = "TRUE" if item.get("soy") else "FALSE"
+                    row["ピーナッツ"] = "TRUE" if item.get("peanut") else "FALSE"
+                    row["牛乳"] = "TRUE" if item.get("milk") else "FALSE"
+                    row["くるみ"] = "TRUE" if item.get("walnut") else "FALSE"
+                    row["セロリ"] = "TRUE" if item.get("celery") else "FALSE"
+                    row["マスタード"] = "TRUE" if item.get("mustard") else "FALSE"
+                    row["ゴマ"] = "TRUE" if item.get("sesame") else "FALSE"
+                    row["亜硫酸塩"] = "TRUE" if item.get("sulfite") else "FALSE"
+                    row["ルピナス"] = "TRUE" if item.get("lupinus") else "FALSE"
+                    row["貝"] = "TRUE" if item.get("mollusc") else "FALSE"
                     
                     # メインコンテンツ
-                    row["S:日本語メニュー名"] = item.get("menu_name_jp", "")
-                    row["T:日本語説明"] = item.get("description_rich", "")
+                    row["日本語メニュー名"] = menu_name
+                    row["日本語説明"] = item.get("description_rich", "")
                     
                     csv_data.append(row)
                 
