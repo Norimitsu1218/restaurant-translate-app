@@ -183,6 +183,10 @@ if uploaded_file:
                 
                 csv_data = []
                 for item in items_data:
+                    # ここで item が辞書型でない場合（文字列など）はスキップする安全策を追加
+                    if not isinstance(item, dict):
+                        continue
+
                     row = {col: "" for col in columns} # 初期化
                     
                     # AI抽出データのマッピング
