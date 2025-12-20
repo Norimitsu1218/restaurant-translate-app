@@ -8,64 +8,64 @@ st.set_page_config(page_title="Menu Intake", page_icon="📝", layout="wide")
 
 st.info("ℹ️ This page verifies the Phase 2 implementation by connecting to the backend API (`/api/intake/extract_page`).")
 
-# Env
-API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8001")
+import asyncio
+import sys
 
-st.title("📝 Menu Intake (Phase 2 Verification)")
-st.caption("Multimodal Extraction powered by Gemini 3")
+# Add path for direct import
+if "tonosama-phase1" not in sys.path:
+    sys.path.append("tonosama-phase1")
 
-# S2-03: Mode Toggle
-mode = st.radio("Mode", ["Quick (10 items)", "Full Scan"], horizontal=True)
-st.divider()
+try:
+    from apps.api.core.gemini import extract_full_page
+    from apps.api.core.normalization import normalize_price, normalize_category
+except ImportError:
+    st.error("Could not import backend logic directly. Checked path: tonosama-phase1/")
 
-# S2-02: Multi-File Uploader
-uploaded_files = st.file_uploader(
-    "Upload Menu Images (JPG, PNG, PDF)",
-    type=["jpg", "png", "heic", "pdf"],
-    accept_multiple_files=True
-)
+# ... (UI Setup) ...
 
-if "intake_results" not in st.session_state:
-    st.session_state["intake_results"] = []
-
-def call_extraction_api(file, page_no):
+def process_file_directly(file, page_no):
+    """
+    Simulated API logic running directly in-process.
+    """
     try:
-        files = {"file": (file.name, file.getvalue(), file.type)}
-        data = {"session_id": "manual_intake", "page_no": page_no}
+        # Read bytes
+        content = file.getvalue()
+        mime_type = file.type
         
-        try:
-            resp = requests.post(f"{API_BASE}/api/intake/extract_page", files=files, data=data, timeout=30)
-        except requests.exceptions.ConnectionError:
-            return None, "API Connection Failed. Is the backend running at localhost:8000?"
-
-        if resp.status_code != 200:
-            return None, f"Error {resp.status_code}: {resp.text}"
-        return resp.json(), None
+        # Call Gemini Logic (Async wrapper)
+        async def _run():
+             return await extract_full_page(content, mime_type, page_no)
+        
+        raw_items, raw_meta = asyncio.run(_run())
+        
+        # Normalization Logic (Same as API)
+        final_items = []
+        for it in raw_items:
+            # Normalize Price
+            p_val, currency = normalize_price(it.price_raw)
+            if p_val:
+                it.price_val = p_val
+                it.currency = currency
+            
+            # Normalize Category
+            it.category_raw = normalize_category(it.category_raw)
+            
+            # Apply Confidence Rules
+            if not it.price_val:
+                it.confidence = min(it.confidence, 0.5)
+                
+            final_items.append(it)
+            
+        # Return dict structure similar to API response for compatibility
+        return {
+            "items": [it.dict() for it in final_items]
+        }, None
+        
     except Exception as e:
         return None, str(e)
 
-st.divider()
-with st.expander("Debug Connection Info"):
-    st.write(f"**Target API_BASE:** `{API_BASE}`")
-    st.write("**Environment Variables:**")
-    st.json({
-        "HTTP_PROXY": os.environ.get("HTTP_PROXY"),
-        "HTTPS_PROXY": os.environ.get("HTTPS_PROXY"),
-        "NO_PROXY": os.environ.get("NO_PROXY")
-    })
-    
-    if st.button("Ping Health Check"):
-        try:
-            # S2-Debug: Force bypass of proxy
-            s = requests.Session()
-            s.trust_env = False
-            r = s.get(f"{API_BASE}/", timeout=5)
-            st.success(f"Status: {r.status_code}, Resp: {r.json()}")
-        except Exception as e:
-            st.error(f"Ping Failed: {e}")
-
 if uploaded_files:
-    if st.button(f"🔍 Scan {len(uploaded_files)} Pages"):
+    if st.button(f"🔍 Scan {len(uploaded_files)} Pages (Direct Mode)"):
         progress_bar = st.progress(0)
         status_text = st.empty()
         
@@ -73,22 +73,8 @@ if uploaded_files:
         for i, file in enumerate(uploaded_files):
             status_text.text(f"Scanning {file.name}...")
             
-            # Use call_extraction_api with bypass logic
-            try:
-                files_payload = {"file": (file.name, file.getvalue(), file.type)}
-                data_payload = {"session_id": "manual_intake", "page_no": i+1}
-                
-                s = requests.Session()
-                s.trust_env = False
-                resp = s.post(f"{API_BASE}/api/intake/extract_page", files=files_payload, data=data_payload, timeout=30)
-                
-                if resp.status_code != 200:
-                    data = None; err = f"Error {resp.status_code}: {resp.text}"
-                else:
-                    data = resp.json(); err = None
-                    
-            except Exception as e:
-                data = None; err = str(e)
+            # DIRECT PROCESS instead of Call API
+            data, err = process_file_directly(file, i+1)
             
             if err:
                 st.error(f"Failed to scan {file.name}: {err}")
