@@ -21,7 +21,19 @@ try:
 except ImportError:
     st.error("Could not import backend logic directly. Checked path: tonosama-phase1/")
 
-# ... (UI Setup) ...
+# S2-03: Mode Toggle
+mode = st.radio("Mode", ["Quick (10 items)", "Full Scan"], horizontal=True)
+st.divider()
+
+# S2-02: Multi-File Uploader
+uploaded_files = st.file_uploader(
+    "Upload Menu Images (JPG, PNG, PDF)",
+    type=["jpg", "png", "heic", "pdf"],
+    accept_multiple_files=True
+)
+
+if "intake_results" not in st.session_state:
+    st.session_state["intake_results"] = []
 
 def process_file_directly(file, page_no):
     """
