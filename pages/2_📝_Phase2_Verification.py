@@ -9,7 +9,7 @@ st.set_page_config(page_title="Menu Intake", page_icon="📝", layout="wide")
 st.info("ℹ️ This page verifies the Phase 2 implementation by connecting to the backend API (`/api/intake/extract_page`).")
 
 # Env
-API_BASE = os.getenv("API_BASE", "http://localhost:8000")
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 
 st.title("📝 Menu Intake (Phase 2 Verification)")
 st.caption("Multimodal Extraction powered by Gemini 3")
