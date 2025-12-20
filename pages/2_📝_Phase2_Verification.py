@@ -47,9 +47,19 @@ def call_extraction_api(file, page_no):
 st.divider()
 with st.expander("Debug Connection Info"):
     st.write(f"**Target API_BASE:** `{API_BASE}`")
+    st.write("**Environment Variables:**")
+    st.json({
+        "HTTP_PROXY": os.environ.get("HTTP_PROXY"),
+        "HTTPS_PROXY": os.environ.get("HTTPS_PROXY"),
+        "NO_PROXY": os.environ.get("NO_PROXY")
+    })
+    
     if st.button("Ping Health Check"):
         try:
-            r = requests.get(f"{API_BASE}/", timeout=5)
+            # S2-Debug: Force bypass of proxy
+            s = requests.Session()
+            s.trust_env = False
+            r = s.get(f"{API_BASE}/", timeout=5)
             st.success(f"Status: {r.status_code}, Resp: {r.json()}")
         except Exception as e:
             st.error(f"Ping Failed: {e}")
@@ -62,7 +72,23 @@ if uploaded_files:
         results = []
         for i, file in enumerate(uploaded_files):
             status_text.text(f"Scanning {file.name}...")
-            data, err = call_extraction_api(file, i+1)
+            
+            # Use call_extraction_api with bypass logic
+            try:
+                files_payload = {"file": (file.name, file.getvalue(), file.type)}
+                data_payload = {"session_id": "manual_intake", "page_no": i+1}
+                
+                s = requests.Session()
+                s.trust_env = False
+                resp = s.post(f"{API_BASE}/api/intake/extract_page", files=files_payload, data=data_payload, timeout=30)
+                
+                if resp.status_code != 200:
+                    data = None; err = f"Error {resp.status_code}: {resp.text}"
+                else:
+                    data = resp.json(); err = None
+                    
+            except Exception as e:
+                data = None; err = str(e)
             
             if err:
                 st.error(f"Failed to scan {file.name}: {err}")
