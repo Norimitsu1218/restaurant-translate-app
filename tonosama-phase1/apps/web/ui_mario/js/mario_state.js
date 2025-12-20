@@ -25,7 +25,11 @@ TONOSAMA.state = {
     generated: null, // last generate response
 
     isEditing: false,
-    isProcessing: false
+    isProcessing: false,
+
+    // Phase 3 (Hearing)
+    currentItem: null, // P3: Active HearingItem
+    completed: false // P3: All items confirmed
 };
 
 TONOSAMA.util = {

@@ -12,6 +12,7 @@ def read_file(path: Path) -> str:
 def render_mario_ui(
     api_base: str,
     demo_session_id: str,
+    mode: str = "demo", # demo | hearing
     default_plan: int = 39,
     preview_preset: str = "friendly_nations",
     height: int = 900
@@ -34,7 +35,8 @@ def render_mario_ui(
     # 4. Config Injection
     config = {
         "apiBase": api_base,
-        "demoSessionId": demo_session_id,
+        "demoSessionId": demo_session_id, # Reused as session_id for hearing
+        "mode": mode,
         "defaultPlan": default_plan,
         "previewPreset": preview_preset
     }

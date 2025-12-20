@@ -152,8 +152,32 @@ TONOSAMA.events = {
         this.enableEdit();
     },
 
-    approve() {
+    async approve() {
         if (S.isEditing) { alert("編集を保存してからOKを押してください"); return; }
+
+        // P3: Hearing Mode
+        if (S.config.mode === "hearing") {
+            try {
+                TONOSAMA.render.showLoading(true);
+                const it = S.currentItem; // P3 uses currentItem
+                if (!it) return;
+
+                await TONOSAMA.api.approveHearingItem(it.tmp_item_id);
+                TONOSAMA.render.showToast("✅ 確認しました");
+
+                // Fetch next
+                await this.loadNextHearingItem();
+
+            } catch (e) {
+                console.error(e);
+                TONOSAMA.render.showToast("❌ エラーが発生しました");
+            } finally {
+                TONOSAMA.render.showLoading(false);
+            }
+            return;
+        }
+
+        // P1: Demo Mode
         TONOSAMA.render.showToast("✅ ありがとうございます！");
         S.currentIndex++;
 
@@ -163,6 +187,16 @@ TONOSAMA.events = {
             card.style.opacity = "0";
         }
         setTimeout(() => TONOSAMA.render.renderCard(), 250);
+    },
+
+    async loadNextHearingItem() {
+        const res = await TONOSAMA.api.getNextHearingItem();
+        if (res.completed) {
+            TONOSAMA.render.showComplete();
+        } else if (res.next_item) {
+            S.currentItem = res.next_item; // P3 Logic uses this
+            TONOSAMA.render.renderCard();
+        }
     },
 
     // edit

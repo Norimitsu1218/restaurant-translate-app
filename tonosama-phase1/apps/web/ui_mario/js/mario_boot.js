@@ -24,6 +24,27 @@ const S = TONOSAMA.state;
     // initial step
     TONOSAMA.render.setStep(0);
 
+    // Phase 3 Override
+    if (cfg.mode === "hearing") {
+        TONOSAMA.render.setStep(2); // Jump to Review
+
+        // Hide Back Button initially? Or always?
+        // P3 Back logic is complicated (Server side cursor). 
+        // For now, let's just fetch the first item.
+        setTimeout(async () => {
+            TONOSAMA.render.showLoading(true);
+            try {
+                await TONOSAMA.events.loadNextHearingItem();
+                TONOSAMA.render.showToast("🚀 確認スタート");
+            } catch (e) {
+                console.error(e);
+                alert("起動に失敗しました (Network Error?)");
+            } finally {
+                TONOSAMA.render.showLoading(false);
+            }
+        }, 500);
+    }
+
     // bind global events
     TONOSAMA.events.bind();
 

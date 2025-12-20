@@ -5,7 +5,7 @@ import json
 
 from ..core.models import (
     HearingSession, HearingItem, HearingActionResponse,
-    IntakeResponse, Price
+    IntakeResponse, Price, HearingSessionStartRequest
 )
 from ..core.normalization import normalize_category
 
@@ -15,11 +15,7 @@ router = APIRouter(prefix="/api/phase3", tags=["phase3"])
 SESSIONS = {} 
 
 @router.post("/session/start", response_model=HearingSession)
-async def start_session(
-    intake_items: List[HearingItem], 
-    menu_master_recommended_name: str = Form(...),
-    mode: str = Form("normal")
-):
+async def start_session(payload: HearingSessionStartRequest):
     """
     Start a Hearing Session from Phase 2 results.
     Auto-links recommended item if match found.
@@ -28,9 +24,9 @@ async def start_session(
     
     # Auto-link logic (S3-11a)
     linked_id = None
-    target_name = menu_master_recommended_name.strip().lower()
+    target_name = payload.menu_master_recommended_name.strip().lower()
     
-    for item in intake_items:
+    for item in payload.intake_items:
         # Simple fuzzy match logic
         item_name = item.name_ja_raw.strip().lower() if item.name_ja_raw else ""
         if target_name and item_name and (target_name in item_name or item_name in target_name):
@@ -44,10 +40,10 @@ async def start_session(
     
     session = HearingSession(
         session_id=session_id,
-        items=intake_items,
+        items=payload.intake_items,
         cursor_index=0,
-        mode=mode,
-        registered_recommended_name=menu_master_recommended_name,
+        mode=payload.mode,
+        registered_recommended_name=payload.menu_master_recommended_name,
         linked_item_id=linked_id
     )
     SESSIONS[session_id] = session

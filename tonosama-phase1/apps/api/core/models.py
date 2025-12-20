@@ -133,3 +133,8 @@ class HearingActionResponse(BaseModel):
     next_item: Optional[HearingItem] = None
     completed: bool = False
     message: Optional[str] = None
+
+class HearingSessionStartRequest(BaseModel):
+    intake_items: List[HearingItem]
+    menu_master_recommended_name: str
+    mode: str = "normal"

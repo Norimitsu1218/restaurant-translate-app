@@ -8,6 +8,9 @@
     <h1>🍱 MENU CHECK<br>メニュー確認</h1>
   </div>
 
+  <!-- S3-11: Recommendation Status Bar -->
+  <div id="statusBar" class="status-bar" style="display:none;"></div>
+
   <!-- Step0: Capture/Upload -->
   <section id="captureSection" class="panel">
     <div class="instruction">
@@ -87,7 +90,9 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="loading-spinner" id="loadingSpinner"><div class="spinner"></div></div>
+<div class="loading-spinner" id="loadingSpinner">
+  <div class="spinner"></div>
+</div>
 
 <div class="modal" id="imageModal">
   <span class="close-modal" id="btnCloseModal">&times;</span>

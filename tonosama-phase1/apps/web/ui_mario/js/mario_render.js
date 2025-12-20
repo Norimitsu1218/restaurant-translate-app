@@ -127,24 +127,65 @@ TONOSAMA.render = {
     },
 
     renderCard() {
-        if (S.currentIndex >= S.selectedItems.length) {
+        // P3: Check if completed via API response flag? Or S.completed
+        if (S.completed) {
             this.showComplete();
             return;
         }
-        const it = S.selectedItems[S.currentIndex];
+
+        // Resolve Item (P1 vs P3)
+        let it = null;
+        if (S.config.mode === "hearing") {
+            it = S.currentItem;
+        } else {
+            if (S.currentIndex >= S.selectedItems.length) {
+                this.showComplete();
+                return;
+            }
+            it = S.selectedItems[S.currentIndex];
+        }
+
+        if (!it) return; // Wait for load
+
+        // Update Status Bar (S3-11)
+        const sb = document.getElementById("statusBar");
+        if (it.is_recommended) {
+            sb.style.display = "block";
+            // Check status
+            const statusText = it.recommended_status === "linked" ? "✅ おすすめ紐付け済" : "⚠️ おすすめ候補 (要確認)";
+            sb.textContent = `${statusText} : ${this.esc(it.name_ja_raw || it.name_ja)}`;
+            sb.className = `status-bar ${it.recommended_status}`;
+        } else {
+            sb.style.display = "none";
+        }
+
         const hasImage = !!S.itemImages[it.tmp_item_id];
         const img = S.itemImages[it.tmp_item_id] || "";
 
-        const metaPrice = (it.price && it.price.raw) ? it.price.raw : "";
-        const metaCat = it.category_ja || "";
+        const metaPrice = (it.price && it.price.raw) ? it.price.raw :
+            (it.price_val) ? `${it.price_val}円` : "";
+        // P3 uses price_val in root or price obj?
+        // P3 HearingItem inherits IntakeItem. IntakeItem has price_val (int) and price_raw (str).
+        // P1 MenuItem has price { amount, raw }.
+        // Need to normalize accessing price.
+
+        let displayPrice = "";
+        if (it.price && it.price.raw) displayPrice = it.price.raw;
+        else if (it.price_val) displayPrice = `¥${it.price_val}`;
+        else if (it.price_raw) displayPrice = it.price_raw;
+
+        const metaCat = it.category_ja || it.category_raw || ""; // P3 uses category_raw
+
+        // P3 Name: name_ja_raw vs P1 name_ja
+        const displayName = it.name_ja || it.name_ja_raw || "";
 
         const text = this.getActiveText(it.tmp_item_id);
 
         document.getElementById("cardContainer").innerHTML = `
       <div class="card">
-        <div class="dish-name">${this.esc(it.name_ja || "")}</div>
+        <div class="dish-name">${this.esc(displayName)}</div>
         <div class="dish-meta">
-          <div class="dish-price">${this.esc(metaPrice)}</div>
+          <div class="dish-price">${this.esc(displayPrice)}</div>
           <div class="dish-cat">${this.esc(metaCat)}</div>
         </div>
 
