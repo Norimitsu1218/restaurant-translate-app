@@ -100,3 +100,36 @@ class IntakeResponse(BaseModel):
     meta: List[PageMeta]
 
 
+    meta: List[PageMeta]
+
+
+# --- Phase 3: Hearing Models ---
+class HearingItem(IntakeItem):
+    # Confirmed fields (S3-09)
+    name_ja_confirmed: Optional[str] = None
+    price_val_confirmed: Optional[int] = None
+    category_confirmed: Optional[str] = None
+    
+    # Status
+    confirm_status: str = "pending" # pending, confirmed, ignored
+    
+    # Recommendation
+    is_recommended: bool = False # Linked to store_recommended_item
+    recommended_status: str = "none" # none, linked, needs_review
+
+class HearingSession(BaseModel):
+    session_id: str
+    items: List[HearingItem]
+    cursor_index: int = 0
+    mode: str = "normal" # normal, shortcut
+    plan: int = 39 # 39, 69, 99
+    
+    # Recommended Item (Registered)
+    registered_recommended_name: str
+    linked_item_id: Optional[str] = None
+
+class HearingActionResponse(BaseModel):
+    success: bool
+    next_item: Optional[HearingItem] = None
+    completed: bool = False
+    message: Optional[str] = None
