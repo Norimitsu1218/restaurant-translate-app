@@ -44,6 +44,16 @@ def call_extraction_api(file, page_no):
     except Exception as e:
         return None, str(e)
 
+st.divider()
+with st.expander("Debug Connection Info"):
+    st.write(f"**Target API_BASE:** `{API_BASE}`")
+    if st.button("Ping Health Check"):
+        try:
+            r = requests.get(f"{API_BASE}/", timeout=5)
+            st.success(f"Status: {r.status_code}, Resp: {r.json()}")
+        except Exception as e:
+            st.error(f"Ping Failed: {e}")
+
 if uploaded_files:
     if st.button(f"🔍 Scan {len(uploaded_files)} Pages"):
         progress_bar = st.progress(0)
