@@ -253,9 +253,10 @@ def translate_japanese_to_english(menu_items: List[MenuItem], api_key: str, pers
     return results
 
 async def translate_english_to_many_async(menu_items: List[MenuItem], target_languages: Dict[str, List[MenuItem]], api_key: str, persona: str = "標準 (丁寧)") -> Dict[str, List[MenuItem]]:
-    """英語から指定言語への翻訳を非同期で並列実行"""
+    """英語から指定言語への翻訳を非同期で並列実行 (S1-04 Transcreation Engine)"""
     llm = get_llm(api_key)
-    # --- S1-04 Transcreation Prompt ---
+    
+    # --- S1-04 Transcreation Prompt Template ---
     transcreation_template = """
     [ROLE]
     You are a transcreation copywriter for restaurant menus.
@@ -270,11 +271,11 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
     [INPUT]
     - Item name (JP): {name_ja}
     - Item description (JP): {desc_ja}
-    
+    - Context: {persona}
+
     [OUTPUT RULES]
-    1) Title format: "{{Localized name}}"
-    2) Body: ~18 seconds silent reading.
-       Include: appearance/texture/taste + how to eat + pairing (suggestion).
+    1) Title format: "{Localized name}" (Keep it native script only unless specified)
+    2) Body: ~18 seconds silent reading (3-beat structure: Texture/Ratio -> How to Eat -> Pairing).
     3) No medical/health claims. No “guarantee”. No unverifiable origin claims.
     4) Be specific without inventing facts. If unknown, phrase as suggestion, not assertion.
     5) JSON Output ONLY.
@@ -282,17 +283,19 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
     [DELIVER]
     Return JSON:
     {{
-      "menu_title": "...",
-      "menu_content": "..."
+      "name": "...",
+      "description": "...",
+      "pairing": "..."
     }}
     """
     
     transcreation_prompt = PromptTemplate(
-        input_variables=["target_language", "persona_role", "persona_tone", "persona_forbidden", "name_ja", "desc_ja"],
+        input_variables=["target_language", "persona_role", "persona_tone", "persona_forbidden", "name_ja", "desc_ja", "persona"],
         template=transcreation_template
     )
 
     from .personas import PERSONA_DEFINITIONS, DEFAULT_QC_RULES
+    from .models import MenuItem
 
     async def verify_quality(original_input: dict, generated_output: dict, lang: str) -> Tuple[bool, str]:
         """S1-06 QC Audit"""
@@ -307,14 +310,14 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
         Desc: {original_input['menu_content']}
         
         [Generated ({lang})]
-        Name: {generated_output.get('menu_title')}
-        Desc: {generated_output.get('menu_content')}
+        Name: {generated_output.get('name', 'N/A')}
+        Desc: {generated_output.get('description', 'N/A')}
+        Pairing: {generated_output.get('pairing', 'N/A')}
         
         Evaluate PASS or FAIL. If FAIL, provide brief reason.
         Format: "PASS" or "FAIL: [Reason]"
         """
         try:
-            # Running synchronous invoke inside async func (acceptable for this scale, or use ainvoke)
             res = await llm.ainvoke(qc_prompt)
             content = res.content.strip()
             
@@ -323,15 +326,15 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                 usage = res.response_metadata["token_usage"]
                 log_api_cost(f"QC_{lang}", llm.model, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
 
-            if content.startswith("PASS"):
+            if content.upper().startswith("PASS"):
                 return True, ""
             return False, content
         except Exception as e:
             print(f"QC Error: {e}")
-            return True, "" # Fail open (allow) if QC errors to prevent blocking
+            return True, "" # Fail open
 
-    async def translate_with_retry(input_dict: dict, lang: str, max_retries: int = 3, initial_wait: float = 2.0) -> dict:
-        # Get Persona Data
+    async def translate_with_retry(input_dict: dict, lang: str, max_retries: int = 1) -> dict:
+        # Get Persona Data (S1-03)
         persona_def = PERSONA_DEFINITIONS.get(lang, {
             "role": "Professional Translator",
             "tone": "Polite, accurate.",
@@ -340,9 +343,6 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
         })
 
         for attempt in range(max_retries):
-            if rate_limit_status["is_waiting"]:
-                await asyncio.sleep(1)
-
             # 1. Generate
             formatted_prompt = transcreation_prompt.format_prompt(
                 target_language=lang,
@@ -350,7 +350,8 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                 persona_tone=persona_def["tone"],
                 persona_forbidden=persona_def["forbidden"],
                 name_ja=input_dict["menu_title"],
-                desc_ja=input_dict["menu_content"]
+                desc_ja=input_dict["menu_content"],
+                persona=persona # Extra context
             )
             
             try:
@@ -361,54 +362,25 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                     usage = response.response_metadata["token_usage"]
                     log_api_cost(f"trans_{lang}", llm.model, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
 
-                # Parse
+                # Parse JSON
                 parsed = output_parser.parse(response.content)
+                
+                # Normalize keys just in case
+                if "menu_title" in parsed and "name" not in parsed:
+                    parsed["name"] = parsed["menu_title"]
+                if "menu_content" in parsed and "description" not in parsed:
+                    parsed["description"] = parsed["menu_content"]
                 
                 # 2. Quality Control (QC)
                 is_pass, reason = await verify_quality(input_dict, parsed, lang)
                 if is_pass:
                     return parsed
                 else:
-                    # If QC fails, loop and retry (maybe logic could inject feedback, but simple retry w/ temp? 
-                    # For now just retry, maybe LLM gets it right next time or temperature varies)
-                    # print(f"QC Failed for {lang}: {reason} (Attempt {attempt+1})")
+                    # Retry logic could be improved by injecting reason, but implies simple retry for now
                     continue 
 
             except Exception as e:
-                # Basic error handling
                 if attempt == max_retries - 1:
-                    raise e
-                await asyncio.sleep(1)
-        
-        # If all retries fail QC or error, return last result or error
-        # Here we raise for now
-        raise Exception(f"Failed to generate valid/passing content for {lang} after {max_retries} attempts.")
-
-    async def translate_menu_item(menu_item: MenuItem, lang: str) -> Tuple[str, MenuItem]:
-        try:
-            # --- SUZUKA CACHE LAYER ---
-            from .global_menu_data import lookup_global_menu
-            
-            # Note: The global dict currently only supports 'en' primary keys, 
-            # but in a full implementation, it would support all target languages.
-            # Here we demonstrate the logic for ENGLISH primarily, or if the dict expands.
-            cached = lookup_global_menu(menu_item.menu_title)
-            
-            # Simple simulation: if we have a cache and lang is 'en' (or mapped), use it.
-            # For this demo, let's assume the Global Dict might have the target lang if it's EN.
-            if lang == "English" or lang == "en":
-                 if cached and "en" in cached:
-                     # Log Cache Hit (Zero Cost)
-                     # print(f"Cache Hit for {menu_item.menu_title}")
-                     return lang, MenuItem(
-                         menu_title=cached["en"], 
-                         menu_content=cached.get("description_en", menu_item.menu_content) # Use cached desc or fallback
-                     )
-
-            # --- END CACHE LAYER ---
-
-            input_text = {"menu_title": menu_item.menu_title, "menu_content": menu_item.menu_content}
-            parsed_output = await translate_with_retry(input_text, lang)
             return lang, MenuItem(menu_title=parsed_output["menu_title"], menu_content=parsed_output["menu_content"])
         except Exception as e:
             error_messages.append(f"🚫 {lang}の翻訳エラー: {e}")
