@@ -204,6 +204,8 @@ if st.session_state["target_contents"]:
     
     with tab4:
         st.markdown("### 🌏多言語・意訳 (Transcreation Mode)")
+        st.markdown("---")
+        st.info("🚀 **New Architecture (v2025.12.19) Available!**\n\nCheck the sidebar for **`🚀 Suzuka v2 Demo`** to see the new Mario UI implementation running from the `tonosama-phase1` codebase.")
         st.markdown("S1-04エンジンを使用し、各国の食文化に合わせた「刺さる」表現を生成します。")
         
         # Decide Source Content (Allow skipping Cleanup/English)
