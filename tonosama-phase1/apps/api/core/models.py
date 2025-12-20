@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 
 # --- Common ---
 class Price(BaseModel):
@@ -45,7 +45,7 @@ class CompleteDemoRequest(BaseModel):
 class ExtractResponse(BaseModel):
     demo_session_id: str
     items: List[MenuItem]
-    policy: Dict[str, any]
+    policy: Dict[str, Any]
 
 class GenerateItemContent(BaseModel):
     name: str
@@ -68,13 +68,13 @@ class PreviewItem(BaseModel):
     de: Optional[GenerateItemContent] = None
     fr: Optional[GenerateItemContent] = None
     ko: Optional[GenerateItemContent] = None
-    cache: Optional[Dict[str, any]] = None
+    cache: Optional[Dict[str, Any]] = None
 
 class GeneratePreviewResponseStrict(BaseModel):
     demo_session_id: str
     plan_code: int
     items: List[PreviewItem]
-    cache: Optional[Dict[str, any]] = None
+    cache: Optional[Dict[str, Any]] = None
 
 # --- Phase 2: Intake Models ---
 class IntakeItem(BaseModel):
