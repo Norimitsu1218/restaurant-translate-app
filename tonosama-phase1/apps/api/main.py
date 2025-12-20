@@ -13,11 +13,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from .routes import demo, billing, intake
+from .routes import demo, billing, intake, phase3
 
 app.include_router(demo.router)
 app.include_router(billing.router)
 app.include_router(intake.router)
+app.include_router(phase3.router)
 
 @app.get("/")
 def health_check():
