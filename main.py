@@ -203,84 +203,98 @@ if st.session_state["target_contents"]:
                 st.success("変更が確定されました！")
     
     with tab4:
-        if st.button("🌏多言語翻訳実行"):
-            with st.spinner("多言語翻訳中..."):
-                try:
-                    st.write("翻訳開始...")
-                    st.write(f"翻訳対象データ数: {len(st.session_state['translated_contents'])}件")
-                    
-                    # 非同期翻訳の実行
-                    results = asyncio.run(langchain_utils.translate_english_to_many_async(
-                        menu_items=st.session_state["translated_contents"],
-                        target_languages=st.session_state["translated_contents_many"],
-                        api_key=st.session_state["gemini_api_key"],
-                        persona=selected_persona
-                    ))
-                    
-                    # 結果をセッション状態に保存
-                    st.session_state["translated_contents_many"].update(results)
-                    st.success("全言語の翻訳が完了しました！")
-                    
-                except Exception as e:
-                    st.error(f"翻訳処理中にエラーが発生しました: {e}")
-                    st.error(f"エラーの詳細: {type(e)}")
-                    import traceback
-                    st.error(f"スタックトレース: {traceback.format_exc()}")
+        st.markdown("### 🌏多言語・意訳 (Transcreation Mode)")
+        st.markdown("S1-04エンジンを使用し、各国の食文化に合わせた「刺さる」表現を生成します。")
         
-        # 翻訳結果の表示（アコーディオン形式）
+        # Decide Source Content (Allow skipping Cleanup/English)
+        source_data = st.session_state["cleaned_contents"] if st.session_state["cleaned_contents"] else st.session_state["target_contents"]
+        
+        if st.button("🚀 Transcreation (一括作成)"):
+            if not source_data:
+                st.error("データがありません。CSVをアップロードしてください。")
+            else:
+                with st.spinner("14言語のペルソナが執筆中... (Transcreation Engine S1-04)"):
+                    try:
+                        st.write("意訳生成を開始...")
+                        st.write(f"対象データ数: {len(source_data)}件")
+                        
+                        # Use updated langchain_utils ensuring JP source is handled
+                        results = asyncio.run(langchain_utils.translate_english_to_many_async(
+                            menu_items=source_data,
+                            target_languages=st.session_state["translated_contents_many"],
+                            api_key=st.session_state["gemini_api_key"]
+                            # persona arg removed as it's now handled inside the engine per language
+                        ))
+                        
+                        st.session_state["translated_contents_many"].update(results)
+                        st.success("全言語の意訳 (Transcreation) が完了しました！")
+                        
+                    except Exception as e:
+                        st.error(f"処理中にエラーが発生しました: {e}")
+                        import traceback
+                        st.error(f"スタックトレース: {traceback.format_exc()}")
+        
+        # 翻訳結果の表示
         if any(st.session_state["translated_contents_many"].values()):
-            st.write("### 翻訳結果")
+            st.write("### 生成結果")
             for lang, translations in st.session_state["translated_contents_many"].items():
                 with st.expander(f"🌐 {lang}"):
                     for i, menu_item in enumerate(translations, 1):
                         st.markdown(f"**{i}. {menu_item.menu_title}**")
                         st.write(menu_item.menu_content)
+                        if menu_item.pairing:
+                             st.info(f"🍷 Pairing: {menu_item.pairing}")
                         st.divider()
         
         # CSVダウンロードボタン
         if any(st.session_state["translated_contents_many"].values()):
             if st.button("📊csvファイルを作成"):
-                # CSVデータの作成
                 output = io.StringIO()
                 writer = csv.writer(output, lineterminator='\n')
                 
-                # ヘッダー行の作成
+                # Header
                 headers = ["日本語メニュー名", "日本語説明", "英語メニュー名", "英語説明"]
                 for lang in st.session_state["translated_contents_many"].keys():
-                    headers.extend([f"{lang}メニュー名", f"{lang}説明"])
+                    headers.extend([f"{lang}メニュー名", f"{lang}説明", f"{lang}ペアリング"])
                 writer.writerow(headers)
                 
-                # データ行の作成
-                for i in range(len(st.session_state["cleaned_contents"])):
+                # Logic to handle missing intermediate data (Skip Flow support)
+                base_len = len(st.session_state["target_contents"])
+                
+                for i in range(base_len):
                     row = []
                     try:
-                        # 日本語
-                        japanese_item = st.session_state["cleaned_contents"][i]
-                        row.extend([japanese_item.menu_title, japanese_item.menu_content])
+                        # 1. JP (Cleaned or Original)
+                        if i < len(st.session_state["cleaned_contents"]):
+                            jp_item = st.session_state["cleaned_contents"][i]
+                        else:
+                            jp_item = st.session_state["target_contents"][i]
+                        row.extend([jp_item.menu_title, jp_item.menu_content])
                         
-                        # 英語
-                        english_item = st.session_state["translated_contents"][i]
-                        row.extend([english_item.menu_title, english_item.menu_content])
+                        # 2. EN (Optional - might not exist if skipped)
+                        if i < len(st.session_state["translated_contents"]):
+                            en_item = st.session_state["translated_contents"][i]
+                            row.extend([en_item.menu_title, en_item.menu_content])
+                        else:
+                            row.extend(["(Skipped)", "(Skipped)"])
                         
-                        # 他言語
+                        # 3. Multi-Lang
                         for lang in st.session_state["translated_contents_many"].keys():
-                            menu_item = st.session_state["translated_contents_many"][lang][i]
-                            row.extend([menu_item.menu_title, menu_item.menu_content])
+                            if i < len(st.session_state["translated_contents_many"][lang]):
+                                m_item = st.session_state["translated_contents_many"][lang][i]
+                                row.extend([m_item.menu_title, m_item.menu_content, m_item.pairing])
+                            else:
+                                row.extend(["", "", ""])
                             
-                    except (IndexError, AttributeError) as e:
-                        st.error(f"{i+1}番目のメニューの処理中にエラーが発生しました: {e}")
-                        # エラーが発生した場合は空文字を追加
-                        row.extend(["", ""] * (len(st.session_state["translated_contents_many"]) + 2 - len(row) // 2))
+                    except Exception as e:
+                        row.extend(["Error", str(e)])
                     
                     writer.writerow(row)
                 
-                # BOMを追加してUTF-8で保存
                 csv_data = '\ufeff' + output.getvalue()
-                
-                # ダウンロードボタンの作成
                 st.download_button(
                     label="⬇️CSVファイルをダウンロード",
                     data=csv_data,
-                    file_name="translated_menu.csv",
+                    file_name="transcreated_menu.csv",
                     mime="text/csv",
                 )
