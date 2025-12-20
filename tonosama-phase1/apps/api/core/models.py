@@ -76,3 +76,27 @@ class GeneratePreviewResponseStrict(BaseModel):
     items: List[PreviewItem]
     cache: Optional[Dict[str, any]] = None
 
+# --- Phase 2: Intake Models ---
+class IntakeItem(BaseModel):
+    tmp_item_id: str
+    name_ja_raw: str
+    price_val: Optional[int]
+    price_raw: str
+    currency: str = "JPY"
+    category_raw: str
+    is_set: bool = False
+    confidence: float = 1.0
+    source_page: int = 1
+    bbox: Optional[List[float]] = None # [ymin, xmin, ymax, xmax]
+
+class PageMeta(BaseModel):
+    page_no: int
+    layout_type: str = "unknown" # list, grid, mixed
+    warnings: List[str] = []
+
+class IntakeResponse(BaseModel):
+    session_id: str
+    items: List[IntakeItem]
+    meta: List[PageMeta]
+
+

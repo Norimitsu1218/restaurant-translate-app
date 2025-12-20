@@ -101,3 +101,80 @@ async def generate_preview_content(items: List[MenuItem], langs: List[str]) -> L
             # Add other langs as needed
         ))
     return results
+
+async def extract_full_page(image_bytes: bytes, mime_type: str, page_no: int = 1) -> tuple:
+    """
+    S2-04: Full page extraction using Gemini 2.0 Flash (Gemini 3 proxy).
+    Returns (List[IntakeItem], PageMeta)
+    """
+    from .models import IntakeItem, PageMeta
+    
+    llm = get_llm()
+    b64_image = base64.b64encode(image_bytes).decode("utf-8")
+    
+    prompt = """
+    Analyze this menu page fully.
+    Task: Extract ALL food/drink items.
+    
+    Output JSON Schema:
+    {
+      "items": [
+        {
+          "name_ja_raw": "text",
+          "price_raw": "text",
+          "price_val": number,
+          "category_raw": "header inference",
+          "is_set": boolean,
+          "confidence": number (0.0-1.0)
+        }
+      ],
+      "meta": {
+        "layout_type": "list|grid|mixed",
+        "warnings": []
+      }
+    }
+    Rules:
+    - If price is ambiguous, set confidence lower.
+    - Extract section headers as category_raw.
+    """
+    
+    msg = HumanMessage(content=[
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64_image}"}}
+    ])
+    
+    try:
+        res = await llm.ainvoke([msg])
+        content = res.content
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0]
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0]
+            
+        data = json.loads(content)
+        
+        items = []
+        for i, d in enumerate(data.get("items", [])):
+            items.append(IntakeItem(
+                tmp_item_id=f"p{page_no}_i{i:03d}",
+                name_ja_raw=d.get("name_ja_raw", "Unknown"),
+                price_val=d.get("price_val"),
+                price_raw=d.get("price_raw", str(d.get("price_val", ""))),
+                category_raw=d.get("category_raw", "Uncategorized"),
+                is_set=d.get("is_set", False),
+                confidence=d.get("confidence", 0.9),
+                source_page=page_no
+            ))
+            
+        meta = PageMeta(
+            page_no=page_no,
+            layout_type=data.get("meta", {}).get("layout_type", "unknown"),
+            warnings=data.get("meta", {}).get("warnings", [])
+        )
+        
+        return items, meta
+        
+    except Exception as e:
+        print(f"Full Page Extraction Error: {e}")
+        return [], PageMeta(page_no=page_no, warnings=[str(e)])
+
