@@ -20,13 +20,18 @@ class MenuItem:
     menu_title: str
     menu_content: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    confidence: float = 1.0 # Default 1.0 (Gemini 2.0 returns text, implied high confidence usually)
-    status: str = "pending" # pending, confirmed, error
+    confidence: float = 1.0 
+    status: str = "pending"
     category: str = ""
     price: Optional[int] = None
+    pairing: str = ""      # S1-04: Pairing suggestion
+    search_tags: str = ""  # S1-04: Context/Tags
     
     def __str__(self) -> str:
-        return f"【メニュー名】{self.menu_title} (ID:{self.id[:4]}..)\n【説明】{self.menu_content}\n【確信度】{self.confidence}"
+        base = f"【メニュー名】{self.menu_title} (ID:{self.id[:4]}..)\n【説明】{self.menu_content}"
+        if self.pairing:
+            base += f"\n【ペアリング】{self.pairing}"
+        return base
     
     @classmethod
     def create_error(cls, error_message: str) -> 'MenuItem':
@@ -38,8 +43,11 @@ class MenuItem:
         )
     
     def to_csv_row(self) -> List[str]:
-        # Legacy support for CSV format
-        return [self.menu_title, self.menu_content]
+        # Legacy support for CSV format - append pairing to content for export visibility
+        content_export = self.menu_content
+        if self.pairing:
+            content_export += f" [Pairing: {self.pairing}]"
+        return [self.menu_title, content_export]
     
     @classmethod
     def from_csv_row(cls, row: List[str]) -> 'MenuItem':
