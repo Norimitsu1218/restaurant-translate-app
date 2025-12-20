@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+from typing import List, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
