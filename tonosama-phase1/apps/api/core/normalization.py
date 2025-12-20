@@ -30,10 +30,26 @@ def normalize_price(raw: str) -> Tuple[Optional[int], str]:
 
 def normalize_category(raw: str) -> str:
     """
-    Clean category names.
-    "【Main Dish】" -> "Main Dish"
+    S2-04 Normalization: Map to standard categories.
+    Target: [Food, Drink, Dessert, Lunch, Course] + (Other)
     """
     if not raw:
-        return "未分類"
-    clean = raw.strip().strip("【】[]「」")
-    return clean if clean else "未分類"
+        return "Food" # Default to Food
+        
+    clean = raw.strip().strip("【】[]「」").lower()
+    
+    # Mapping Rules (Priority Order)
+    if any(k in clean for k in ["drink", "beverage", "alcohol", "sake", "beer", "wine", "coffee", "tea", "ドリンク", "飲み物", "酒"]):
+        return "Drink"
+    
+    if any(k in clean for k in ["dessert", "sweet", "cake", "ice", "dolce", "デザート", "スイーツ", "甘味", "菓子"]):
+        return "Dessert"
+        
+    if any(k in clean for k in ["lunch", "set", "meal", "ランチ", "定食", "御膳", "昼"]):
+        return "Lunch"
+        
+    if any(k in clean for k in ["course", "kaiseki", "plan", "コース", "会席", "宴会"]):
+        return "Course"
+    
+    # Default fallback
+    return "Food"
