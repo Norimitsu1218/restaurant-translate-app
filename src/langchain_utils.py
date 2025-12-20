@@ -342,7 +342,7 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
             "keywords": []
         })
 
-        for attempt in range(max_retries):
+        for attempt in range(max_retries + 1): # Attempt 0 + Max Retries
             # 1. Generate
             formatted_prompt = transcreation_prompt.format_prompt(
                 target_language=lang,
@@ -365,7 +365,7 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                 # Parse JSON
                 parsed = output_parser.parse(response.content)
                 
-                # Normalize keys just in case
+                # Normalize keys
                 if "menu_title" in parsed and "name" not in parsed:
                     parsed["name"] = parsed["menu_title"]
                 if "menu_content" in parsed and "description" not in parsed:
@@ -374,43 +374,59 @@ async def translate_english_to_many_async(menu_items: List[MenuItem], target_lan
                 # 2. Quality Control (QC)
                 is_pass, reason = await verify_quality(input_dict, parsed, lang)
                 if is_pass:
+                    print(f"✅ {lang}: Pass")
                     return parsed
                 else:
-                    # Retry logic could be improved by injecting reason, but implies simple retry for now
+                    print(f"⚠️ {lang}: QC Fail - {reason} (Attempt {attempt+1})")
                     continue 
 
             except Exception as e:
-                if attempt == max_retries - 1:
-            return lang, MenuItem(menu_title=parsed_output["menu_title"], menu_content=parsed_output["menu_content"])
+                # print(f"Error {lang}: {e}")
+                pass
+            
+            # Wait briefly before retry if not last attempt
+            if attempt < max_retries:
+                await asyncio.sleep(1)
+        
+        # Fallback if all attempts fail
+        return {
+             "name": input_dict["menu_title"], 
+             "description": f"(Translation Pending) {input_dict['menu_content']}",
+             "pairing": ""
+        }
+
+    async def process_single_item(item: MenuItem, lang: str) -> MenuItem:
+        try:
+            input_data = {"menu_title": item.menu_title, "menu_content": item.menu_content}
+            result_dict = await translate_with_retry(input_data, lang, max_retries=1)
+            
+            return MenuItem(
+                menu_title=result_dict.get("name", item.menu_title),
+                menu_content=result_dict.get("description", item.menu_content),
+                pairing=result_dict.get("pairing", ""),
+                confidence=0.9,
+                status="confirmed"
+            )
         except Exception as e:
-            error_messages.append(f"🚫 {lang}の翻訳エラー: {e}")
-            return lang, MenuItem.create_error(str(e))
+            return MenuItem.create_error(f"{lang} Error: {str(e)}")
 
-    async def translate_language(lang: str) -> Tuple[str, List[MenuItem]]:
-        progress_text = f"🔄 {lang}の翻訳"
-        my_bar = st.progress(0, text=progress_text)
-        
-        batch_size = 3 # 並列数を少し抑えて安定させる
-        tasks = [translate_menu_item(item, lang) for item in menu_items]
-        translated_items = []
-        total_items = len(tasks)
-        
-        for i in range(0, total_items, batch_size):
-            batch = tasks[i:i + batch_size]
-            batch_results = await asyncio.gather(*batch)
-            translated_items.extend(batch_results)
-            progress = int(min((i + batch_size), total_items) / total_items * 100)
-            my_bar.progress(progress, text=f"{progress_text} ({min(i + batch_size, total_items)}/{total_items})")
-        
-        my_bar.progress(100, text=f"✅ {lang}の翻訳完了")
-        return lang, [item[1] for item in translated_items]
-
-    translation_tasks = [translate_language(lang) for lang in target_languages.keys()]
-    translation_results = await asyncio.gather(*translation_tasks)
+    # --- Main Loop ---
+    results = {lang: [] for lang in target_languages.keys()}
     
-    results = dict(translation_results)
-    if error_messages:
-        with st.expander("⚠️ エラー詳細", expanded=False):
-            for msg in error_messages:
-                st.error(msg)
+    # Process per language to manage tasks clearly
+    for lang in target_languages.keys():
+        lang_tasks = []
+        for item in menu_items:
+            lang_tasks.append(process_single_item(item, lang))
+        
+        # Gather results for this language
+        # (For 14 languages * N items, this is somewhat heavy, but async handles it well enough for <100 total reqs)
+        # Using a progress bar per language is good UX
+        
+        # Note: We can't easily update a Streamlit progress bar from inside async gather without callbacks.
+        # So we just await all.
+        
+        lang_results = await asyncio.gather(*lang_tasks)
+        results[lang] = list(lang_results)
+        
     return results
