@@ -38,9 +38,24 @@ if "intake_results" not in st.session_state:
     st.stop()
 
 # Convert Intake Result dicts back to Objects if needed, or just use as dicts for API
-intake_data = st.session_state["intake_results"]
+intake_data = st.session_state.get("intake_results", [])
+
+# Debug: Mock Data Loader
 if not intake_data:
     st.warning("Intake result is empty.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅️ Go to Verification (Phase 2)"):
+            st.switch_page("pages/2_📝_Phase2_Verification.py")
+    with col2:
+        if st.button("🧪 Debug: Load Mock Data"):
+            st.session_state["intake_results"] = [
+                {"Name": "Yakitori Momo (Mock)", "Price": 180, "Category": "Food", "Conf": 0.95, "Page": 1},
+                {"Name": "Draft Beer (Mock)", "Price": 550, "Category": "Drink", "Conf": 0.98, "Page": 1},
+                {"Name": "Unknown Item (Mock)", "Price": 9999, "Category": "Food", "Conf": 0.4, "Page": 1},
+            ]
+            st.rerun()
     st.stop()
 
 # Convert flattened table data back to API schema structure?
