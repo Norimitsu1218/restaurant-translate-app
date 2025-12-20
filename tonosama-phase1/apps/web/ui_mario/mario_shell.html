@@ -1,0 +1,99 @@
+<!-- ui/mario/mario_shell.html -->
+<div class="cloud cloud-1"></div>
+<div class="cloud cloud-2"></div>
+<div class="cloud cloud-3"></div>
+
+<div class="container">
+  <div class="header">
+    <h1>🍱 MENU CHECK<br>メニュー確認</h1>
+  </div>
+
+  <!-- Step0: Capture/Upload -->
+  <section id="captureSection" class="panel">
+    <div class="instruction">
+      <strong>📸 デモ操作</strong>
+      <p>メニュー表を<strong>10品</strong>が写るように撮影してアップロードしてください。</p>
+      <p class="small">※10品以外は表示しません（店主の迷いを消します）</p>
+    </div>
+
+    <div class="capture-buttons">
+      <button class="big-button" id="btnCaptureCamera">📸 撮影する</button>
+      <button class="big-button" id="btnCapturePhoto">📷 写真から選ぶ</button>
+    </div>
+
+    <div class="panel-note">
+      <div class="panel-note-title">💡 コツ</div>
+      <ul>
+        <li>ピントは文字優先</li>
+        <li>影が入らない角度で</li>
+        <li>価格も写るように</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Step1: Select 3 Items -->
+  <section id="selectSection" class="panel" style="display:none;">
+    <div class="instruction">
+      <strong>✅ 3品だけ選んでください</strong>
+      <p>ここで選んだ3品で「できた！」を体験できます。</p>
+      <p class="small">※ちょうど3つです（多くても少なくても進めません）</p>
+    </div>
+
+    <div id="selectList" class="select-list"></div>
+
+    <div class="select-footer">
+      <div id="selectCount" class="select-count">0 / 3</div>
+      <button class="complete-button" id="btnSelectConfirm" disabled>▶ この3品で進む</button>
+    </div>
+  </section>
+
+  <!-- Step2: Review Cards -->
+  <section id="mainSection" style="display:none;">
+    <div class="progress" id="progress">1 / 3 品目</div>
+
+    <div class="encouragement" id="encouragement">
+      それでは1品目から始めましょう！
+    </div>
+
+    <!-- Plan + Lang controls -->
+    <div class="control-bar">
+      <div class="plan-switch">
+        <span class="plan-label">39</span>
+        <input id="planToggle" type="range" min="39" max="69" step="30" value="39" />
+        <span class="plan-label">69</span>
+      </div>
+
+      <div class="lang-select">
+        <select id="langSelect">
+          <!-- Populated by JS -->
+        </select>
+      </div>
+    </div>
+
+    <div class="card-container" id="cardContainer"></div>
+
+    <div class="buttons" id="actionButtons">
+      <button class="button button-back" id="btnBack">← 戻る</button>
+      <button class="button button-reject" id="btnReject">訂正</button>
+      <button class="button button-approve" id="btnApprove">OK</button>
+    </div>
+
+    <div class="complete-screen" id="completeScreen">
+      <h2>🎉 COMPLETE!<br>確認完了！</h2>
+      <p>この続きは本登録URLから進められます。</p>
+      <button class="complete-button" id="btnSubmit">🏁 確定して送信</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading-spinner" id="loadingSpinner"><div class="spinner"></div></div>
+
+<div class="modal" id="imageModal">
+  <span class="close-modal" id="btnCloseModal">&times;</span>
+  <img id="modalImage" src="" alt="">
+</div>
+
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="photoInput" accept="image/*" style="display:none;">
+<input type="file" id="itemImageInput" accept="image/*" style="display:none;">

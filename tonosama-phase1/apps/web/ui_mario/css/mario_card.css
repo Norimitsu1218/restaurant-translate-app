@@ -1,0 +1,323 @@
+/* ui/mario/css/mario_card.css */
+.progress {
+    background: #fff;
+    border: 4px solid #F4D03F;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 14px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #1C1C1C;
+    box-shadow: 0 4px 0 #D4AC0D, 0 8px 15px rgba(0, 0, 0, .2);
+    position: relative;
+}
+
+.progress::before {
+    content: '⭐';
+    position: absolute;
+    left: 15px;
+    font-size: 24px;
+    animation: spin 3s linear infinite
+}
+
+.progress::after {
+    content: '⭐';
+    position: absolute;
+    right: 15px;
+    font-size: 24px;
+    animation: spin 3s linear infinite reverse
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0)
+    }
+
+    100% {
+        transform: rotate(360deg)
+    }
+}
+
+.encouragement {
+    background: linear-gradient(to bottom, #D89048 0%, #D89048 48%, #A85038 48%, #A85038 100%);
+    border: 3px solid #784800;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 15px;
+    color: #fff;
+    font-weight: 900;
+    box-shadow: 0 4px 0 #784800, 0 8px 15px rgba(0, 0, 0, .2);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, .3);
+}
+
+.instruction {
+    background: linear-gradient(to bottom, #FCB838 0%, #FCB838 48%, #F09048 48%, #F09048 100%);
+    border: 3px solid #D87800;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 14px;
+    line-height: 1.8;
+    color: #fff;
+    box-shadow: 0 4px 0 #D87800, 0 8px 15px rgba(0, 0, 0, .2);
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, .2);
+}
+
+.instruction strong {
+    font-size: 18px;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, .3)
+}
+
+.instruction p {
+    margin: 10px 0
+}
+
+.card-container {
+    position: relative;
+    width: 100%;
+    perspective: 1000px;
+    margin-bottom: 18px
+}
+
+.card {
+    width: 100%;
+    background: #fff;
+    border: 5px solid #48D850;
+    border-radius: 20px;
+    padding: 26px;
+    box-shadow: 0 0 0 3px #00A800, 0 10px 30px rgba(0, 0, 0, .3);
+    transition: transform .3s ease, opacity .3s ease;
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(to right, #48D850 50%, #00A800 50%);
+    border-radius: 20px;
+    z-index: -1;
+}
+
+.dish-name {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 6px;
+    color: #1C1C1C
+}
+
+.dish-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap
+}
+
+.dish-price {
+    font-size: 18px;
+    color: #F09048;
+    font-weight: 900
+}
+
+.dish-price::before {
+    content: '🪙 '
+}
+
+.dish-cat {
+    font-size: 14px;
+    color: #333;
+    background: #f2f2f2;
+    border: 2px solid #ddd;
+    border-radius: 999px;
+    padding: 4px 10px
+}
+
+.image-upload-section {
+    margin-bottom: 16px
+}
+
+.image-upload-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+    display: block
+}
+
+.image-upload-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 12px
+}
+
+.upload-button {
+    padding: 14px 10px;
+    border: 3px solid #D4AC0D;
+    border-radius: 8px;
+    background: linear-gradient(to bottom, #FCB838 0%, #FCB838 48%, #F09048 48%, #F09048 100%);
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s;
+    font-size: 14px;
+    font-weight: 900;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 90px;
+    justify-content: center;
+    box-shadow: 0 3px 0 #D87800, 0 6px 10px rgba(0, 0, 0, .2);
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, .2);
+}
+
+.upload-button:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #D87800, 0 3px 5px rgba(0, 0, 0, .2)
+}
+
+.upload-button .icon {
+    font-size: 28px
+}
+
+.image-preview-container {
+    display: none;
+    position: relative;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-top: 10px;
+    border: 4px solid #48D850;
+    box-shadow: 0 0 0 2px #00A800
+}
+
+.image-preview-container.has-image {
+    display: block
+}
+
+.image-preview {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 10px;
+    cursor: pointer
+}
+
+.image-actions {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px
+}
+
+.image-action-btn {
+    background: rgba(0, 0, 0, .8);
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .3);
+}
+
+.image-action-btn:active {
+    transform: scale(.95)
+}
+
+.dish-description {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #333;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all .3s;
+    min-height: 110px;
+}
+
+.dish-description:active {
+    background: #f0f0f0;
+    border-color: #F09048
+}
+
+.edit-hint {
+    font-size: 13px;
+    color: #999;
+    text-align: center;
+    margin-top: 5px
+}
+
+.edit-area {
+    display: none;
+    margin-top: 12px
+}
+
+.edit-area.active {
+    display: block
+}
+
+.edit-area textarea {
+    width: 100%;
+    padding: 15px;
+    border: 3px solid #48D850;
+    border-radius: 10px;
+    font-size: 15px;
+    line-height: 1.8;
+    resize: vertical;
+    min-height: 150px;
+    font-family: inherit;
+    box-shadow: 0 0 0 2px #00A800;
+}
+
+.edit-area textarea:focus {
+    outline: none;
+    border-color: #00A800
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px
+}
+
+.edit-button {
+    flex: 1;
+    padding: 14px;
+    border: 3px solid;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 900;
+    font-size: 16px;
+    transition: all .2s;
+    box-shadow: 0 4px 0;
+}
+
+.edit-button:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0
+}
+
+.cancel-button {
+    background: #E0E0E0;
+    border-color: #999;
+    color: #666;
+    box-shadow: 0 4px 0 #999
+}
+
+.save-button {
+    background: linear-gradient(to bottom, #FCB838 0%, #F09048 100%);
+    border-color: #D87800;
+    color: #fff;
+    box-shadow: 0 4px 0 #D87800
+}

@@ -1,0 +1,99 @@
+/* ui/mario/css/mario_toast.css */
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: linear-gradient(to bottom, #FCB838 0%, #F09048 100%);
+    color: #fff;
+    padding: 15px 30px;
+    border: 3px solid #D87800;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 900;
+    z-index: 1000;
+    opacity: 0;
+    transition: all .3s ease;
+    box-shadow: 0 4px 0 #D87800, 0 8px 15px rgba(0, 0, 0, .3);
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, .2);
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1
+}
+
+.loading-spinner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-spinner.active {
+    display: flex
+}
+
+.spinner {
+    border: 6px solid #FCB838;
+    border-top: 6px solid #F09048;
+    border-radius: 10px;
+    width: 60px;
+    height: 60px;
+    animation: spin-block 1s linear infinite;
+}
+
+@keyframes spin-block {
+    0% {
+        transform: rotate(0)
+    }
+
+    100% {
+        transform: rotate(360deg)
+    }
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .9);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border: 4px solid #fff;
+    border-radius: 10px
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 50px;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .7);
+    border: 3px solid #fff;
+    border-radius: 50%;
+}

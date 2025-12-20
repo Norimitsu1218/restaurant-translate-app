@@ -1,0 +1,156 @@
+/* ui/mario/css/mario_buttons.css */
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+    position: relative
+}
+
+.button {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 5px solid;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 0, 0 10px 20px rgba(0, 0, 0, .3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, .2);
+}
+
+.button::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 20%;
+    width: 25px;
+    height: 15px;
+    background: rgba(255, 255, 255, .4);
+    border-radius: 50%;
+    filter: blur(3px);
+}
+
+.button:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0, 0 4px 10px rgba(0, 0, 0, .3)
+}
+
+.button-back {
+    background: radial-gradient(circle at 35% 35%, #ff4444, #cc0000);
+    border-color: #990000;
+    color: #fff;
+    box-shadow: 0 6px 0 #990000, 0 10px 20px rgba(0, 0, 0, .3)
+}
+
+.button-reject {
+    background: radial-gradient(circle at 35% 35%, #ffff44, #ffdd00);
+    border-color: #ccaa00;
+    color: #000;
+    box-shadow: 0 6px 0 #ccaa00, 0 10px 20px rgba(0, 0, 0, .3)
+}
+
+.button-approve {
+    background: radial-gradient(circle at 35% 35%, #4444ff, #0000cc);
+    border-color: #000099;
+    color: #fff;
+    box-shadow: 0 6px 0 #000099, 0 10px 20px rgba(0, 0, 0, .3)
+}
+
+.complete-screen {
+    display: none;
+    text-align: center;
+    background: #fff;
+    padding: 60px 40px;
+    border-radius: 25px;
+    border: 5px solid #48D850;
+    box-shadow: 0 0 0 3px #00A800, 0 10px 40px rgba(0, 0, 0, .3);
+}
+
+.complete-screen h2 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 22px;
+    margin-bottom: 25px;
+    color: #1C1C1C;
+    line-height: 1.8
+}
+
+.complete-screen p {
+    font-size: 16px;
+    margin-bottom: 22px;
+    line-height: 1.8
+}
+
+.complete-button {
+    padding: 18px 44px;
+    font-size: 18px;
+    background: linear-gradient(to bottom, #48D850 0%, #00A800 100%);
+    color: #fff;
+    border: 4px solid #006400;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: 900;
+    box-shadow: 0 6px 0 #006400, 0 10px 20px rgba(0, 0, 0, .3);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, .2);
+}
+
+.complete-button:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 #006400, 0 4px 10px rgba(0, 0, 0, .3)
+}
+
+.select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px
+}
+
+.select-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 3px solid #48D850;
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: #fff;
+    box-shadow: 0 0 0 2px #00A800;
+}
+
+.select-row-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.select-name {
+    font-weight: 900
+}
+
+.select-sub {
+    font-size: 12px;
+    color: #666
+}
+
+.select-row input {
+    transform: scale(1.3)
+}
+
+.select-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    gap: 10px
+}
+
+.select-count {
+    font-weight: 900
+}
